@@ -82,6 +82,7 @@ Validate a VAT number against the European Commission's VIES service and pull th
 
 - `queries` accepts EU VAT numbers (`FR22424761419`), French SIREN or SIRET, Swiss UID (`CHE-105.909.036`) and Norwegian organisation numbers (`NO:923609016`).
 - Fields worth mapping to columns: `kybStatus`, `vatValid`, `legalName`, `status`, `legalForm`, `incorporationDate`, `address`, `leiCode`, `registryUrls`.
+- `vatValid` is `null` when VIES gave no verdict (a member state's service is busy or down). Treat it as "check again later", not as invalid; filter on `vatValid = false` for real failures.
 - No government API keys needed. UK Companies House data needs your own free key in `companiesHouseApiKey`.
 
 ---
