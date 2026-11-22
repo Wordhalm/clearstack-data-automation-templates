@@ -12,12 +12,13 @@ Prices are Apify pay-per-event prices on the free tier and go down on paid Apify
 
 ## Setup (once)
 
-1. In your Clay table, click **Add enrichment**, search for **Apify** and pick **Run Apify Actor**.
-2. Connect your Apify account with your Apify API token (Apify Console → Settings → API & Integrations).
-3. Choose the Actor named in the recipe.
-4. Paste the recipe's JSON into **Input Data**.
-5. Replace the `{{…}}` placeholder with the column token from your table. Clay's rule: the key stays in quotes, the token itself gets no quotes.
-6. Run it on 5 rows first. Then decide whether to keep **Auto-update** on: with it on, every new row triggers a paid run.
+1. In Apify, open the Actor's page and create a Task from it (Clay's Apify guide starts with this step so the Actor shows up in your account). Switch the Task input from Manual to JSON to see the full input format.
+2. In your Clay table, click **Add enrichment**, search for **Apify** and pick **Run Apify Actor**.
+3. Connect your Apify account with your Apify API token (Apify Console → Settings → API & Integrations).
+4. Choose the Actor named in the recipe.
+5. Paste the recipe's JSON into **Input Data**.
+6. Replace the `{{…}}` placeholder with the column token from your table. Clay's rule: the key stays in quotes, the token itself gets no quotes.
+7. Run it on 5 rows first. Then decide whether to keep **Auto-update** on: with it on, every new row triggers a paid run.
 
 If Clay reports `Cannot parse input JSON body`, paste the JSON without the token first, check that it runs, then add the token.
 
