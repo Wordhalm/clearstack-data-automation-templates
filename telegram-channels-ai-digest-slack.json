@@ -1,0 +1,128 @@
+{
+  "name": "Hourly Telegram Public Channels Monitor to Slack / AI Digest (ClearStack Data Apify)",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Incremental Public Telegram Channels Monitor\n\n**How to set up (2 min):**\n1. Create an **HTTP Header Auth** credential: Header Name = `Authorization`, Value = `Bearer YOUR_APIFY_TOKEN`.\n2. Set your public `channels` (`durov`, `telegram`, `bloomberg`, etc.) in the HTTP Request body.\n3. Connect Slack and activate the schedule.\n\nNo Telegram login, phone number, or proxy needed. Uses `onlyNewSinceLastRun: true` to return only new posts.\nActor docs: https://apify.com/clearstack-data/telegram-public-channel-monitor",
+        "height": 280,
+        "width": 540,
+        "color": 5
+      },
+      "id": "setup-sticky-note",
+      "name": "Setup Guide",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        200,
+        -40
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 2
+            }
+          ]
+        }
+      },
+      "id": "schedule-trigger",
+      "name": "Every 2 Hours",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        220,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.apify.com/v2/acts/clearstack-data~telegram-public-channel-monitor/run-sync-get-dataset-items",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\"channels\":[\"durov\",\"telegram\",\"bloomberg\"],\"maxMessagesPerChannel\":30,\"onlyNewSinceLastRun\":true,\"monitorStateName\":\"news-watch\",\"includeMediaUrls\":true}",
+        "options": {
+          "timeout": 120000
+        }
+      },
+      "id": "call-telegram",
+      "name": "Fetch Only New Telegram Posts",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        480,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "if (!items.length) return [];\nconst lines = items.slice(0, 15).map(i => {\n  const m = i.json;\n  const snippet = (m.text || '').replace(/\\n+/g, ' ').slice(0, 140);\n  return `- *@${m.channel}* (${m.views || '0'} views): ${snippet}... -> ${m.postUrl}`;\n});\nreturn [{ json: { text: `*New Telegram Channel Posts (${items.length})*\\n` + lines.join('\\n') } }];"
+      },
+      "id": "format-digest",
+      "name": "Format Telegram Digest",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        740,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "channel": "#telegram-intel",
+        "text": "={{ $json.text }}"
+      },
+      "id": "send-slack",
+      "name": "Post to Slack",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.2,
+      "position": [
+        980,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Every 2 Hours": {
+      "main": [
+        [
+          {
+            "node": "Fetch Only New Telegram Posts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Only New Telegram Posts": {
+      "main": [
+        [
+          {
+            "node": "Format Telegram Digest",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Telegram Digest": {
+      "main": [
+        [
+          {
+            "node": "Post to Slack",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

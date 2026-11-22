@@ -1,0 +1,128 @@
+{
+  "name": "Daily Competitor Google Ads Monitor to Slack (ClearStack Data Apify)",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Daily Competitor Google Ads Monitor\n\n**How to set up (2 min):**\n1. Create an **HTTP Header Auth** credential: Header Name = `Authorization`, Value = `Bearer YOUR_APIFY_TOKEN`.\n2. Edit `targets` in the HTTP Request node (`stripe.com`, `shopify.com`, etc.) and `region` (`US`, `FR`, `GB`, `ALL`).\n3. Select your Slack channel in the last node and activate the schedule.\n\nUses `onlyNewSinceLastRun: true` so you only get alerted (and billed) for brand-new ads.\nActor docs: https://apify.com/clearstack-data/google-ads-transparency-scraper",
+        "height": 280,
+        "width": 540,
+        "color": 5
+      },
+      "id": "setup-sticky-note",
+      "name": "Setup Guide",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        200,
+        -40
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 9 * * *"
+            }
+          ]
+        }
+      },
+      "id": "daily-trigger",
+      "name": "Every Day at 09:00",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        220,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.apify.com/v2/acts/clearstack-data~google-ads-transparency-scraper/run-sync-get-dataset-items",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\"targets\":[\"stripe.com\",\"shopify.com\",\"hubspot.com\"],\"region\":\"US\",\"format\":\"ALL\",\"dateRangeDays\":7,\"maxAdsPerTarget\":40,\"includeDetails\":false,\"onlyNewSinceLastRun\":true,\"monitorStateName\":\"competitors-us\"}",
+        "options": {
+          "timeout": 120000
+        }
+      },
+      "id": "call-gatc",
+      "name": "Check New Competitor Google Ads",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        480,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "if (!items.length) return [];\nconst lines = items.slice(0, 15).map(i => {\n  const a = i.json;\n  return `- [${a.format}] *${a.advertiserName || a.domain}* (${a.firstShownDate || 'new'}) -> ${a.adUrl}`;\n});\nreturn [{ json: { text: `*New Competitor Google Ads Detected (${items.length})*\\n` + lines.join('\\n') } }];"
+      },
+      "id": "format-slack",
+      "name": "Format Competitor Ad Alert",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        740,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "channel": "#competitor-ads",
+        "text": "={{ $json.text }}"
+      },
+      "id": "post-slack",
+      "name": "Send Alert to Slack",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.2,
+      "position": [
+        980,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Every Day at 09:00": {
+      "main": [
+        [
+          {
+            "node": "Check New Competitor Google Ads",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check New Competitor Google Ads": {
+      "main": [
+        [
+          {
+            "node": "Format Competitor Ad Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Competitor Ad Alert": {
+      "main": [
+        [
+          {
+            "node": "Send Alert to Slack",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

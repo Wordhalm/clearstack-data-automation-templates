@@ -1,0 +1,160 @@
+{
+  "name": "EU VAT (VIES) & Company KYB Enricher (Google Sheets + ClearStack Data Apify)",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## EU VAT (VIES) & Official Registry KYB Enricher\n\n**How to set up (2 min):**\n1. Connect your Google Sheet containing a `vat_or_id` column (EU VAT, FR SIREN/SIRET, CH UID, NO Org.nr, FI Business ID, LEI, or company name).\n2. Create an **HTTP Header Auth** credential: Header Name = `Authorization`, Value = `Bearer YOUR_APIFY_TOKEN`.\n3. Run manually or attach a Schedule/Webhook trigger.\n\nActor docs: https://apify.com/clearstack-data/eu-company-kyb-enricher",
+        "height": 280,
+        "width": 540,
+        "color": 5
+      },
+      "id": "setup-sticky-note",
+      "name": "Setup Guide",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        200,
+        -40
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "manual-trigger",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        220,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "mode": "id",
+          "value": "YOUR_GOOGLE_SHEET_ID"
+        },
+        "sheetName": {
+          "mode": "name",
+          "value": "Companies"
+        }
+      },
+      "id": "read-sheet",
+      "name": "Read VAT / Company IDs",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        440,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const queries = items.map(i => i.json.vat_or_id || i.json.query).filter(Boolean);\nreturn [{ json: { queries, validateVat: true, enrichGleifLei: true, concurrency: 3 } }];"
+      },
+      "id": "batch-queries",
+      "name": "Batch Identifiers",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        660,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.apify.com/v2/acts/clearstack-data~eu-company-kyb-enricher/run-sync-get-dataset-items",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "timeout": 120000
+        }
+      },
+      "id": "call-apify-kyb",
+      "name": "Run ClearStack EU KYB & VIES Enricher",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        900,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "mode": "id",
+          "value": "YOUR_GOOGLE_SHEET_ID"
+        },
+        "sheetName": {
+          "mode": "name",
+          "value": "Enriched_KYB"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData"
+        }
+      },
+      "id": "write-sheet",
+      "name": "Write Verified KYB Results",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        1140,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Read VAT / Company IDs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read VAT / Company IDs": {
+      "main": [
+        [
+          {
+            "node": "Batch Identifiers",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Batch Identifiers": {
+      "main": [
+        [
+          {
+            "node": "Run ClearStack EU KYB & VIES Enricher",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Run ClearStack EU KYB & VIES Enricher": {
+      "main": [
+        [
+          {
+            "node": "Write Verified KYB Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

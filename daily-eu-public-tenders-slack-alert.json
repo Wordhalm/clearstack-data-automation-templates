@@ -1,0 +1,128 @@
+{
+  "name": "Daily EU TED, France BOAMP & UK Public Tenders Alert to Slack",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Daily EU TED, France BOAMP & UK Public Tenders Alert\n\n**How to set up (2 min):**\n1. Create an **HTTP Header Auth** credential: Header Name = `Authorization`, Value = `Bearer YOUR_APIFY_TOKEN`.\n2. Customize `sources` (`EU_TED`, `FR_BOAMP`, `UK_FTS`), `keywords`, `countries`, or `cpvCodes` in the HTTP Request node.\n3. Connect Slack and activate the weekday 08:00 schedule.\n\nActor docs: https://apify.com/clearstack-data/eu-public-tenders-monitor",
+        "height": 280,
+        "width": 540,
+        "color": 5
+      },
+      "id": "setup-sticky-note",
+      "name": "Setup Guide",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        200,
+        -40
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 8 * * 1-5"
+            }
+          ]
+        }
+      },
+      "id": "daily-trigger",
+      "name": "Every Weekday at 08:00",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        220,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.apify.com/v2/acts/clearstack-data~eu-public-tenders-monitor/run-sync-get-dataset-items",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\"sources\":[\"EU_TED\",\"FR_BOAMP\",\"UK_FTS\"],\"keywords\":[\"software\",\"cloud\",\"cybersecurity\"],\"publishedSinceDays\":1,\"onlyOpenTenders\":true,\"maxResultsPerSource\":25}",
+        "options": {
+          "timeout": 120000
+        }
+      },
+      "id": "fetch-tenders",
+      "name": "Fetch New EU/FR/UK Public Tenders",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        480,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "if (!items.length) return [];\nconst lines = items.slice(0, 15).map(i => {\n  const t = i.json;\n  const val = t.estimatedValue ? ` | ${t.estimatedValue} ${t.currency || ''}` : '';\n  const ddl = t.deadlineDate ? ` | Deadline: ${t.deadlineDate}` : '';\n  return `- [${t.source} / ${t.country || '?'}] *${t.title}* (${t.buyerName || 'Public buyer'}${val}${ddl}) -> ${t.url}`;\n});\nreturn [{ json: { text: `*Daily EU/FR/UK Public Tenders (${items.length} matches)*\\n` + lines.join('\\n') } }];"
+      },
+      "id": "format-digest",
+      "name": "Format Slack Digest",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        740,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "channel": "#public-tenders",
+        "text": "={{ $json.text }}"
+      },
+      "id": "send-slack",
+      "name": "Send to Slack",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.2,
+      "position": [
+        980,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Every Weekday at 08:00": {
+      "main": [
+        [
+          {
+            "node": "Fetch New EU/FR/UK Public Tenders",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch New EU/FR/UK Public Tenders": {
+      "main": [
+        [
+          {
+            "node": "Format Slack Digest",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Slack Digest": {
+      "main": [
+        [
+          {
+            "node": "Send to Slack",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
