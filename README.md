@@ -109,6 +109,8 @@ Yes. `clearstack-data/telegram-public-channel-monitor` parses Telegram's public 
 ### Why search Greenhouse, Lever, Ashby, and SmartRecruiters directly instead of scraping LinkedIn or Indeed?
 LinkedIn and Indeed aggressively block scrapers and often list expired reposts. `clearstack-data/career-site-jobs-search` bundles a verified index of 25,787 employers and queries their official public ATS JSON APIs directly, returning live openings with direct-apply links in ~2–4 seconds.
 
+To check a single company first, the free [ATS Job Board Finder](https://wordhalm.github.io/ats-job-board-finder/) tells you which ATS it uses and lists its open roles in the browser.
+
 ### Does EU Company KYB Enricher require government API keys?
 No. EU VIES (all 27 EU member states), France DINUM (INSEE SIRENE + RNE), Switzerland Zefix, Norway Brreg, Finland PRH/YTJ, and GLEIF LEI all work out of the box with zero API keys. A UK Companies House API key is strictly optional.
 
