@@ -34,6 +34,14 @@ Try any use case directly in your browser without writing code:
 - [Swiss Zefix Commercial Register & UID Lookup](https://apify.com/clearstack-data/eu-company-kyb-enricher/examples/swiss-zefix-commercial-register-uid-lookup)
 - [France BOAMP Daily Public Tenders Monitor](https://apify.com/clearstack-data/eu-public-tenders-monitor/examples/france-boamp-daily-public-tenders-monitor)
 
+## Clay Recipes
+
+Paste-in JSON for Clay's **Run Apify Actor** enrichment, one column per signal: open roles at an account, Google Ads an account is running, EU VAT and registry check. See [clay-recipes/](clay-recipes/README.md).
+
+## Free Tool
+
+[ATS Job Board Finder](https://wordhalm.github.io/ats-job-board-finder/): look up which ATS any of 25,787 companies uses and see its open roles in the browser.
+
 ---
 
 ## 1. Setup in n8n (2 Minutes)

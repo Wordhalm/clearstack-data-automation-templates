@@ -22,3 +22,11 @@
 - [daily-ats-hiring-signals-slack.json](https://raw.githubusercontent.com/Wordhalm/clearstack-data-automation-templates/main/daily-ats-hiring-signals-slack.json)
 - [eu-vat-kyb-sheets-enricher.json](https://raw.githubusercontent.com/Wordhalm/clearstack-data-automation-templates/main/eu-vat-kyb-sheets-enricher.json)
 - [daily-eu-public-tenders-slack-alert.json](https://raw.githubusercontent.com/Wordhalm/clearstack-data-automation-templates/main/daily-eu-public-tenders-slack-alert.json)
+
+## Clay Recipes
+
+- [Clay recipes (Run Apify Actor JSON inputs)](https://github.com/Wordhalm/clearstack-data-automation-templates/blob/main/clay-recipes/README.md): hiring signal per account (Career Site Jobs Search), Google Ads activity per domain (Google Ads Transparency Scraper), EU VAT and registry check (EU Company KYB Enricher).
+
+## Free Tools
+
+- [ATS Job Board Finder](https://wordhalm.github.io/ats-job-board-finder/): which ATS a company uses (Greenhouse, Lever, Ashby, SmartRecruiters) and its open roles, for 25,787 companies. Index downloadable as JSON.
