@@ -5,7 +5,7 @@ Production-ready **n8n automation templates** and **Claude / Cursor MCP configur
 Every workflow calls lightweight, **HTTP-only Apify Actors** (256–512 MB RAM, zero headless browsers, zero paid proxies) with incremental monitoring (`onlyNewSinceLastRun: true`) so scheduled runs only return and bill for new items.
 
 - **Apify Store Profile:** https://apify.com/clearstack-data
-- **MCP Endpoint:** `https://mcp.apify.com`
+- **Dedicated MCP Server (Claude / Cursor / VS Code):** [`npx -y clearstack-data-mcp`](https://www.npmjs.com/package/clearstack-data-mcp) ([GitHub](https://github.com/Wordhalm/clearstack-data-mcp) · [Official MCP Registry](https://registry.modelcontextprotocol.io/v0.1/servers?search=clearstack-data-mcp) · [Glama](https://glama.ai/mcp/servers/Wordhalm/clearstack-data-mcp))
 - **Pricing Model:** Transparent Pay-Per-Event (no extra Apify compute/proxy surcharges)
 
 ---
@@ -55,22 +55,29 @@ Paste-in JSON for Clay's **Run Apify Actor** enrichment, one column per signal: 
 
 ---
 
-## 2. Setup with Claude Desktop, Claude Code, or Cursor (Apify MCP)
+## 2. Setup with Claude Code, Claude Desktop, Cursor, or VS Code (MCP)
 
-Add the official Apify MCP server to your `claude_desktop_config.json` or `.cursor/mcp.json`:
+Use the dedicated [`clearstack-data-mcp`](https://github.com/Wordhalm/clearstack-data-mcp) server (`npx -y clearstack-data-mcp`) for trimmed token-efficient output, automatic `maxTotalChargeUsd` spending caps, and 45-second timeout handling:
+
+```bash
+claude mcp add clearstack-data -e APIFY_TOKEN=your_token -- npx -y clearstack-data-mcp
+```
+
+Or add to `.cursor/mcp.json` / `claude_desktop_config.json`:
 
 ```json
 {
   "mcpServers": {
-    "apify": {
-      "url": "https://mcp.apify.com",
-      "headers": {
-        "Authorization": "Bearer YOUR_APIFY_API_TOKEN"
-      }
+    "clearstack-data": {
+      "command": "npx",
+      "args": ["-y", "clearstack-data-mcp"],
+      "env": { "APIFY_TOKEN": "YOUR_APIFY_API_TOKEN" }
     }
   }
 }
 ```
+
+Alternatively, connect Apify's remote MCP server (`https://mcp.apify.com`) with `Authorization: Bearer YOUR_APIFY_API_TOKEN`.
 
 ### Example Prompts for AI Agents
 

@@ -4,7 +4,8 @@
 
 - Developer Profile: https://apify.com/clearstack-data
 - GitHub Templates Repo: https://github.com/Wordhalm/clearstack-data-automation-templates
-- Apify MCP Server: https://mcp.apify.com
+- Dedicated MCP Server: https://github.com/Wordhalm/clearstack-data-mcp (`npx -y clearstack-data-mcp`, Official MCP Registry `io.github.Wordhalm/clearstack-data-mcp`, npm `https://www.npmjs.com/package/clearstack-data-mcp`)
+- Apify Remote MCP Server: https://mcp.apify.com
 
 ## Actors
 
