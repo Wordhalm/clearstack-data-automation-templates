@@ -197,15 +197,37 @@ for (const file of allWorkflowFiles) {
         assert.ok(overviewWords >= 100 && overviewWords <= 300, `${file}: overview sticky note must be 100-300 words (got ${overviewWords})`);
 
         const stageNotes = stickyNotes.filter((n) => n !== overview);
+        // Reserve real n8n label footprint: 90px left, 210px right (from node.x), 160px top (sticky heading), 200px bottom (icon + 2-3 line label)
         const inBox = ([x, y], note) => {
             const [nx, ny] = note.position;
             const w = note.parameters.width || 300;
             const h = note.parameters.height || 300;
-            return x >= nx + 20 && x + 100 <= nx + w - 10 && y >= ny + 60 && y + 100 <= ny + h - 10;
+            return x >= nx + 90 && x + 210 <= nx + w && y >= ny + 160 && y + 200 <= ny + h;
         };
         for (const node of functionalNodes) {
             assert.ok(!inBox(node.position, overview), `${file}: node "${node.name}" overlaps overview sticky note`);
-            assert.ok(stageNotes.some((s) => inBox(node.position, s)), `${file}: node "${node.name}" at [${node.position}] is outside all stage sticky notes`);
+            assert.ok(stageNotes.some((s) => inBox(node.position, s)), `${file}: node "${node.name}" at [${node.position}] label could overflow stage sticky note`);
+        }
+
+        // Verify no horizontal edge cuts directly through an intermediate node on the same row
+        const posByName = new Map(functionalNodes.map((n) => [n.name, n.position]));
+        for (const [src, conn] of Object.entries(wf.connections)) {
+            const p1 = posByName.get(src);
+            if (!p1) continue;
+            for (const branch of conn.main || []) {
+                for (const edge of branch || []) {
+                    const p2 = posByName.get(edge.node);
+                    if (!p2 || Math.abs(p1[1] - p2[1]) > 40) continue;
+                    const minX = Math.min(p1[0], p2[0]);
+                    const maxX = Math.max(p1[0], p2[0]);
+                    for (const [otherName, po] of posByName.entries()) {
+                        if (otherName === src || otherName === edge.node) continue;
+                        if (po[0] > minX + 20 && po[0] < maxX - 20 && Math.abs(po[1] - p1[1]) < 60) {
+                            assert.fail(`${file}: wire "${src}" -> "${edge.node}" passes directly through "${otherName}"`);
+                        }
+                    }
+                }
+            }
         }
     } else {
         assert.ok(stickyNotes.length >= 1 && stickyNotes[0].parameters.color === 1, `${file}: quickstart sticky note must be color 1 (yellow)`);
@@ -217,8 +239,8 @@ for (const file of allWorkflowFiles) {
 // 5. Runtime simulation of Workflow #1 (EU Vendor KYB, VAT & Sanctions Compliance Gate)
 {
     const wf1 = JSON.parse(readFileSync(join(ROOT, 'eu-vendor-kyb-sanctions-compliance-gate.json'), 'utf8'));
-    const validateCode = wf1.nodes.find((n) => n.name === 'Normalize & Validate Vendor Input').parameters.jsCode;
-    const decisionCode = wf1.nodes.find((n) => n.name === 'Evaluate Compliance Decision & Risk Score').parameters.jsCode;
+    const validateCode = wf1.nodes.find((n) => n.name === 'Normalize & Validate Input').parameters.jsCode;
+    const decisionCode = wf1.nodes.find((n) => n.name === 'Score Compliance & Risk').parameters.jsCode;
 
     const validated = runCodeV2(validateCode, [
         { json: { 'Vendor Identifier or Legal Name': ' FR22424761419 ', 'Country (ISO-2, optional)': 'fr', 'Estimated Annual Spend (EUR)': '15000', 'Requester Email': 'ops@example.com' } },
@@ -282,7 +304,7 @@ for (const file of allWorkflowFiles) {
                 },
             },
         ],
-        { 'Normalize & Validate Vendor Input': validated },
+        { 'Normalize & Validate Input': validated },
     );
 
     assert.equal(decisions[0].json.complianceDecision, 'APPROVED');
@@ -307,7 +329,7 @@ for (const file of allWorkflowFiles) {
     const buildCode = wf2.nodes.find((n) => n.name === 'Filter & Build Batch Payloads').parameters.jsCode;
     const tagJobsCode = wf2.nodes.find((n) => n.name === 'Tag Hiring Signal Items').parameters.jsCode;
     const tagAdsCode = wf2.nodes.find((n) => n.name === 'Tag Ad Signal Items').parameters.jsCode;
-    const scoreCode = wf2.nodes.find((n) => n.name === 'Aggregate & Score Buying Intent per Account').parameters.jsCode;
+    const scoreCode = wf2.nodes.find((n) => n.name === 'Score Buying Intent (0-100)').parameters.jsCode;
 
     const batch = runCodeV2(buildCode, [
         { json: { accountName: 'Mistral AI', domain: 'https://www.mistral.ai/news', atsTarget: 'ashby:mistral', owner: 'Alice', active: 'true' } },

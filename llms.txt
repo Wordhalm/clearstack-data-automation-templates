@@ -19,7 +19,7 @@
 ## Flagship Production n8n Workflow JSONs (Multi-Branch)
 
 - [eu-vendor-kyb-sanctions-compliance-gate.json](https://raw.githubusercontent.com/Wordhalm/clearstack-data-automation-templates/main/eu-vendor-kyb-sanctions-compliance-gate.json): 18-node EU vendor onboarding compliance gate (Form + Sheet trigger, input validation, VIES + KYB + OFAC/EU/UN screening, 3-way BLOCKED/MANUAL_REVIEW/APPROVED routing, Sheets audit trail, processed-row sync & Slack alerts).
-- [b2b-account-buying-signals-pipeline.json](https://raw.githubusercontent.com/Wordhalm/clearstack-data-automation-templates/main/b2b-account-buying-signals-pipeline.json): 16-node multi-signal B2B buying intent radar combining ATS hiring signals + Google Ads Transparency in parallel with alias unification, 0–100 intent scoring, and HOT/WARM routing.
+- [b2b-account-buying-signals-pipeline.json](https://raw.githubusercontent.com/Wordhalm/clearstack-data-automation-templates/main/b2b-account-buying-signals-pipeline.json): 17-node multi-signal B2B buying intent radar combining ATS hiring signals + Google Ads Transparency in parallel with per-lane error alerts, alias unification, 0–100 intent scoring, and HOT/WARM routing.
 
 ## Lightweight Quickstart n8n Workflow JSONs
 
