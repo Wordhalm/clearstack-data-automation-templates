@@ -198,6 +198,20 @@ for (const file of allWorkflowFiles) {
         assert.ok(overviewWords >= 100 && overviewWords <= 300, `${file}: overview sticky note must be 100-300 words (got ${overviewWords})`);
 
         const stageNotes = stickyNotes.filter((n) => n !== overview);
+        for (const sn of stageNotes) {
+            const words = sn.parameters.content.trim().split(/\s+/).length;
+            assert.ok(words <= 50, `${file}: section sticky note "${sn.name}" must be <= 50 words per n8n guide (got ${words})`);
+        }
+        // Check that alwaysOutputData + continueErrorOutput nodes do NOT wire error output into the same downstream node as output 0 (prevents double-execution!)
+        for (const node of functionalNodes) {
+            if (node.alwaysOutputData === true && node.onError === 'continueErrorOutput') {
+                const out0 = new Set((wf.connections[node.name]?.main?.[0] || []).map((e) => e.node));
+                const out1 = (wf.connections[node.name]?.main?.[1] || []).map((e) => e.node);
+                for (const target of out1) {
+                    assert.ok(!out0.has(target), `${file}: "${node.name}" has alwaysOutputData + continueErrorOutput and wires BOTH outputs to "${target}" (would double-execute on error!)`);
+                }
+            }
+        }
         // Reserve real n8n label footprint: 90px left, 210px right (from node.x), 160px top (sticky heading), 200px bottom (icon + 2-3 line label)
         const inBox = ([x, y], note) => {
             const [nx, ny] = note.position;
@@ -372,6 +386,8 @@ for (const file of allWorkflowFiles) {
     assert.equal(scored[1].json.newJobsCount, 1);
     assert.equal(scored[1].json.newAdsCount, 1);
     assert.match(scored[1].json.slackMessage, /BBC &amp; News &lt;UK&gt;/);
+    assert.ok(!scored[1].json.slackMessage.includes('-&gt;'), 'Slack message must not escape arrow into -&gt;');
+    assert.match(scored[1].json.slackMessage, /<https:\/\/jobs\.bbc\.co\.uk\/1\|Lead Data Engineer>/);
     assert.ok(scored[1].json.slackMessage.length <= 2800);
     assert.equal(scored[2].json.accountName, 'Shopify');
     assert.equal(scored[2].json.intentTier, 'WARM');
