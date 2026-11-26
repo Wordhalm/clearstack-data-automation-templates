@@ -3,12 +3,12 @@
   "nodes": [
     {
       "parameters": {
-        "content": "## EU VAT (VIES) & Official Registry KYB Enricher\n\n**How to set up (2 min):**\n1. Connect your Google Sheet containing a `vat_or_id` column (EU VAT, FR SIREN/SIRET, CH UID, NO Org.nr, FI Business ID, LEI, or company name).\n2. Create an **HTTP Header Auth** credential: Header Name = `Authorization`, Value = `Bearer YOUR_APIFY_TOKEN`.\n3. Run manually or attach a Schedule/Webhook trigger.\n\nActor docs: https://apify.com/clearstack-data/eu-company-kyb-enricher",
+        "content": "## EU VAT (VIES) & Official Registry KYB Enricher\n\n**How to set up (2 min):**\n1. Connect Google Sheets and select your spreadsheet containing a `Companies` tab with a `vat_or_id` column (EU VAT, FR SIREN/SIRET, CH UID, NO Org.nr, FI Business ID, LEI, or company name) and an `Enriched_KYB` tab.\n2. Create an **HTTP Header Auth** credential: Header Name = `Authorization`, Value = `Bearer <YOUR_APIFY_TOKEN>`.\n3. Run manually or attach a Schedule/Webhook trigger.\n\nActor docs: https://apify.com/clearstack-data/eu-company-kyb-enricher",
         "height": 280,
         "width": 540,
-        "color": 5
+        "color": 1
       },
-      "id": "setup-sticky-note",
+      "id": "77777777-7777-4777-8777-777777777001",
       "name": "Setup Guide",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
@@ -19,7 +19,7 @@
     },
     {
       "parameters": {},
-      "id": "manual-trigger",
+      "id": "77777777-7777-4777-8777-777777777002",
       "name": "Manual Trigger",
       "type": "n8n-nodes-base.manualTrigger",
       "typeVersion": 1,
@@ -30,16 +30,21 @@
     },
     {
       "parameters": {
+        "operation": "read",
         "documentId": {
-          "mode": "id",
-          "value": "YOUR_GOOGLE_SHEET_ID"
+          "__rl": true,
+          "value": "",
+          "mode": "list",
+          "cachedResultName": "EU KYB Companies Sheet"
         },
         "sheetName": {
-          "mode": "name",
-          "value": "Companies"
-        }
+          "__rl": true,
+          "value": "Companies",
+          "mode": "name"
+        },
+        "options": {}
       },
-      "id": "read-sheet",
+      "id": "77777777-7777-4777-8777-777777777003",
       "name": "Read VAT / Company IDs",
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.5,
@@ -50,9 +55,11 @@
     },
     {
       "parameters": {
-        "jsCode": "const queries = items.map(i => i.json.vat_or_id || i.json.query).filter(Boolean);\nreturn [{ json: { queries, validateVat: true, enrichGleifLei: true, concurrency: 3 } }];"
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const queries = $input.all()\n  .map(i => String(i.json?.vat_or_id || i.json?.query || '').trim())\n  .filter(Boolean);\nif (!queries.length) return [];\nreturn [{ json: { queries, validateVat: true, enrichGleifLei: true, screenSanctions: true, concurrency: 3 } }];"
       },
-      "id": "batch-queries",
+      "id": "77777777-7777-4777-8777-777777777004",
       "name": "Batch Identifiers",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -64,17 +71,18 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://api.apify.com/v2/acts/clearstack-data~eu-company-kyb-enricher/run-sync-get-dataset-items",
+        "url": "https://api.apify.com/v2/acts/clearstack-data~eu-company-kyb-enricher/run-sync-get-dataset-items?maxTotalChargeUsd=0.25",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
+        "contentType": "json",
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify($json) }}",
         "options": {
           "timeout": 120000
         }
       },
-      "id": "call-apify-kyb",
+      "id": "77777777-7777-4777-8777-777777777005",
       "name": "Run ClearStack EU KYB & VIES Enricher",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -87,18 +95,39 @@
       "parameters": {
         "operation": "appendOrUpdate",
         "documentId": {
-          "mode": "id",
-          "value": "YOUR_GOOGLE_SHEET_ID"
+          "__rl": true,
+          "value": "",
+          "mode": "list",
+          "cachedResultName": "EU KYB Companies Sheet"
         },
         "sheetName": {
-          "mode": "name",
-          "value": "Enriched_KYB"
+          "__rl": true,
+          "value": "Enriched_KYB",
+          "mode": "name"
         },
         "columns": {
-          "mappingMode": "autoMapInputData"
-        }
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [
+            "query"
+          ],
+          "schema": [
+            {
+              "id": "query",
+              "displayName": "query",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
       },
-      "id": "write-sheet",
+      "id": "77777777-7777-4777-8777-777777777006",
       "name": "Write Verified KYB Results",
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.5,
@@ -154,7 +183,12 @@
       ]
     }
   },
+  "active": false,
+  "pinData": {},
   "settings": {
     "executionOrder": "v1"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": false
   }
 }

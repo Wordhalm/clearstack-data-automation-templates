@@ -3,12 +3,12 @@
   "nodes": [
     {
       "parameters": {
-        "content": "## Daily EU TED, France BOAMP & UK Public Tenders Alert\n\n**How to set up (2 min):**\n1. Create an **HTTP Header Auth** credential: Header Name = `Authorization`, Value = `Bearer YOUR_APIFY_TOKEN`.\n2. Customize `sources` (`EU_TED`, `FR_BOAMP`, `UK_FTS`), `keywords`, `countries`, or `cpvCodes` in the HTTP Request node.\n3. Connect Slack and activate the weekday 08:00 schedule.\n\nActor docs: https://apify.com/clearstack-data/eu-public-tenders-monitor",
+        "content": "## Daily EU TED, France BOAMP & UK Public Tenders Alert\n\n**How to set up (2 min):**\n1. Create an **HTTP Header Auth** credential: Header Name = `Authorization`, Value = `Bearer <YOUR_APIFY_TOKEN>`.\n2. Customize `sources` (`EU_TED`, `FR_BOAMP`, `UK_FTS`), `keywords`, `countries`, or `cpvCodes` in the HTTP Request node.\n3. Connect Slack, verify `#public-tenders`, and activate the weekday 08:00 schedule.\n\nActor docs: https://apify.com/clearstack-data/eu-public-tenders-monitor",
         "height": 280,
         "width": 540,
-        "color": 5
+        "color": 1
       },
-      "id": "setup-sticky-note",
+      "id": "55555555-5555-4555-8555-555555555001",
       "name": "Setup Guide",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
@@ -28,7 +28,7 @@
           ]
         }
       },
-      "id": "daily-trigger",
+      "id": "55555555-5555-4555-8555-555555555002",
       "name": "Every Weekday at 08:00",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
@@ -40,17 +40,18 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://api.apify.com/v2/acts/clearstack-data~eu-public-tenders-monitor/run-sync-get-dataset-items",
+        "url": "https://api.apify.com/v2/acts/clearstack-data~eu-public-tenders-monitor/run-sync-get-dataset-items?maxTotalChargeUsd=0.25",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
+        "contentType": "json",
         "specifyBody": "json",
-        "jsonBody": "{\"sources\":[\"EU_TED\",\"FR_BOAMP\",\"UK_FTS\"],\"keywords\":[\"software\",\"cloud\",\"cybersecurity\"],\"publishedSinceDays\":1,\"onlyOpenTenders\":true,\"maxResultsPerSource\":25}",
+        "jsonBody": "{\"sources\":[\"EU_TED\",\"FR_BOAMP\",\"UK_FTS\"],\"keywords\":[\"software\",\"cloud\",\"cybersecurity\"],\"publishedSinceDays\":1,\"noticeCategory\":\"OPEN_TENDER\",\"onlyNewSinceLastRun\":true,\"monitorStateName\":\"eu-tenders-daily\",\"maxResultsPerSource\":25}",
         "options": {
           "timeout": 120000
         }
       },
-      "id": "fetch-tenders",
+      "id": "55555555-5555-4555-8555-555555555003",
       "name": "Fetch New EU/FR/UK Public Tenders",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -61,9 +62,11 @@
     },
     {
       "parameters": {
-        "jsCode": "if (!items.length) return [];\nconst lines = items.slice(0, 15).map(i => {\n  const t = i.json;\n  const val = t.estimatedValue ? ` | ${t.estimatedValue} ${t.currency || ''}` : '';\n  const ddl = t.deadlineDate ? ` | Deadline: ${t.deadlineDate}` : '';\n  return `- [${t.source} / ${t.country || '?'}] *${t.title}* (${t.buyerName || 'Public buyer'}${val}${ddl}) -> ${t.url}`;\n});\nreturn [{ json: { text: `*Daily EU/FR/UK Public Tenders (${items.length} matches)*\\n` + lines.join('\\n') } }];"
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const rows = $input.all().filter(i => i.json && (i.json.noticeId || i.json.title));\nif (!rows.length) return [];\nconst lines = rows.slice(0, 15).map(i => {\n  const t = i.json;\n  const val = t.estimatedValue ? ` | ${t.estimatedValue} ${t.currency || ''}` : '';\n  const ddl = t.deadlineDate ? ` | Deadline: ${t.deadlineDate}` : '';\n  return `- [${t.source} / ${t.country || '?'}] *${t.title}* (${t.buyerName || 'Public buyer'}${val}${ddl}) -> ${t.url}`;\n});\nreturn [{ json: { text: (`*Daily EU/FR/UK Public Tenders (${rows.length} matches)*\\n` + lines.join('\\n')).slice(0, 2800) } }];"
       },
-      "id": "format-digest",
+      "id": "55555555-5555-4555-8555-555555555004",
       "name": "Format Slack Digest",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -74,10 +77,16 @@
     },
     {
       "parameters": {
-        "channel": "#public-tenders",
-        "text": "={{ $json.text }}"
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "#public-tenders",
+          "mode": "name"
+        },
+        "text": "={{ $json.text }}",
+        "otherOptions": {}
       },
-      "id": "send-slack",
+      "id": "55555555-5555-4555-8555-555555555005",
       "name": "Send to Slack",
       "type": "n8n-nodes-base.slack",
       "typeVersion": 2.2,
@@ -122,7 +131,12 @@
       ]
     }
   },
+  "active": false,
+  "pinData": {},
   "settings": {
     "executionOrder": "v1"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": false
   }
 }

@@ -3,12 +3,12 @@
   "nodes": [
     {
       "parameters": {
-        "content": "## Daily Competitor Google Ads Monitor\n\n**How to set up (2 min):**\n1. Create an **HTTP Header Auth** credential: Header Name = `Authorization`, Value = `Bearer YOUR_APIFY_TOKEN`.\n2. Edit `targets` in the HTTP Request node (`stripe.com`, `shopify.com`, etc.) and `region` (`US`, `FR`, `GB`, `ALL`).\n3. Select your Slack channel in the last node and activate the schedule.\n\nUses `onlyNewSinceLastRun: true` so you only get alerted (and billed) for brand-new ads.\nActor docs: https://apify.com/clearstack-data/google-ads-transparency-scraper",
+        "content": "## Daily Competitor Google Ads Monitor\n\n**How to set up (2 min):**\n1. Create an **HTTP Header Auth** credential: Header Name = `Authorization`, Value = `Bearer <YOUR_APIFY_TOKEN>`.\n2. Edit `targets` in the HTTP Request node (`stripe.com`, `shopify.com`, etc.) and `region` (`US`, `FR`, `GB`, `ALL`).\n3. Connect Slack, verify `#competitor-ads`, and activate the schedule.\n\nUses `onlyNewSinceLastRun: true` so you only get alerted (and billed) for brand-new ads.\nActor docs: https://apify.com/clearstack-data/google-ads-transparency-scraper",
         "height": 280,
         "width": 540,
-        "color": 5
+        "color": 1
       },
-      "id": "setup-sticky-note",
+      "id": "33333333-3333-4333-8333-333333333001",
       "name": "Setup Guide",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
@@ -28,7 +28,7 @@
           ]
         }
       },
-      "id": "daily-trigger",
+      "id": "33333333-3333-4333-8333-333333333002",
       "name": "Every Day at 09:00",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
@@ -40,17 +40,18 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://api.apify.com/v2/acts/clearstack-data~google-ads-transparency-scraper/run-sync-get-dataset-items",
+        "url": "https://api.apify.com/v2/acts/clearstack-data~google-ads-transparency-scraper/run-sync-get-dataset-items?maxTotalChargeUsd=0.25",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
+        "contentType": "json",
         "specifyBody": "json",
         "jsonBody": "{\"targets\":[\"stripe.com\",\"shopify.com\",\"hubspot.com\"],\"region\":\"US\",\"format\":\"ALL\",\"dateRangeDays\":7,\"maxAdsPerTarget\":40,\"includeDetails\":false,\"onlyNewSinceLastRun\":true,\"monitorStateName\":\"competitors-us\"}",
         "options": {
           "timeout": 120000
         }
       },
-      "id": "call-gatc",
+      "id": "33333333-3333-4333-8333-333333333003",
       "name": "Check New Competitor Google Ads",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -61,9 +62,11 @@
     },
     {
       "parameters": {
-        "jsCode": "if (!items.length) return [];\nconst lines = items.slice(0, 15).map(i => {\n  const a = i.json;\n  return `- [${a.format}] *${a.advertiserName || a.domain}* (${a.firstShownDate || 'new'}) -> ${a.adUrl}`;\n});\nreturn [{ json: { text: `*New Competitor Google Ads Detected (${items.length})*\\n` + lines.join('\\n') } }];"
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const rows = $input.all().filter(i => i.json && (i.json.creativeId || i.json.advertiserId));\nif (!rows.length) return [];\nconst lines = rows.slice(0, 15).map(i => {\n  const a = i.json;\n  return `- [${a.format}] *${a.advertiserName || a.domain}* (${a.firstShownDate || 'new'}) -> ${a.adUrl}`;\n});\nreturn [{ json: { text: (`*New Competitor Google Ads Detected (${rows.length})*\\n` + lines.join('\\n')).slice(0, 2800) } }];"
       },
-      "id": "format-slack",
+      "id": "33333333-3333-4333-8333-333333333004",
       "name": "Format Competitor Ad Alert",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -74,10 +77,16 @@
     },
     {
       "parameters": {
-        "channel": "#competitor-ads",
-        "text": "={{ $json.text }}"
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "#competitor-ads",
+          "mode": "name"
+        },
+        "text": "={{ $json.text }}",
+        "otherOptions": {}
       },
-      "id": "post-slack",
+      "id": "33333333-3333-4333-8333-333333333005",
       "name": "Send Alert to Slack",
       "type": "n8n-nodes-base.slack",
       "typeVersion": 2.2,
@@ -122,7 +131,12 @@
       ]
     }
   },
+  "active": false,
+  "pinData": {},
   "settings": {
     "executionOrder": "v1"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": false
   }
 }

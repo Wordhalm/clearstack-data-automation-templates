@@ -3,12 +3,12 @@
   "nodes": [
     {
       "parameters": {
-        "content": "## Daily B2B Target-Account Hiring Signals (25K+ ATS Index)\n\n**How to set up (2 min):**\n1. Create an **HTTP Header Auth** credential: Header Name = `Authorization`, Value = `Bearer YOUR_APIFY_TOKEN`.\n2. Edit `companies` (plain names auto-resolved across 25,700+ Greenhouse, Lever, Ashby & SmartRecruiters boards) and trigger `keywords` (`AI`, `Security`, `VP`).\n3. Connect Slack and activate the weekday schedule.\n\nActor docs: https://apify.com/clearstack-data/career-site-jobs-search",
+        "content": "## Daily B2B Target-Account Hiring Signals (25K+ ATS Index)\n\n**How to set up (2 min):**\n1. Create an **HTTP Header Auth** credential: Header Name = `Authorization`, Value = `Bearer <YOUR_APIFY_TOKEN>`.\n2. Edit `companies` (plain names auto-resolved across 25,700+ Greenhouse, Lever, Ashby & SmartRecruiters boards) and trigger `keywords` (`AI`, `Security`, `VP`).\n3. Connect Slack, verify `#hiring-signals`, and activate the weekday schedule.\n\nActor docs: https://apify.com/clearstack-data/career-site-jobs-search",
         "height": 280,
         "width": 540,
-        "color": 5
+        "color": 1
       },
-      "id": "setup-sticky-note",
+      "id": "44444444-4444-4444-8444-444444444001",
       "name": "Setup Guide",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
@@ -28,7 +28,7 @@
           ]
         }
       },
-      "id": "daily-trigger",
+      "id": "44444444-4444-4444-8444-444444444002",
       "name": "Every Weekday at 08:00",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
@@ -40,17 +40,18 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://api.apify.com/v2/acts/clearstack-data~career-site-jobs-search/run-sync-get-dataset-items",
+        "url": "https://api.apify.com/v2/acts/clearstack-data~career-site-jobs-search/run-sync-get-dataset-items?maxTotalChargeUsd=0.25",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
+        "contentType": "json",
         "specifyBody": "json",
         "jsonBody": "{\"companies\":[\"Stripe\",\"OpenAI\",\"Anthropic\",\"Palantir\",\"Linear\",\"Datadog\",\"Notion\",\"Figma\"],\"keywords\":[\"AI\",\"Security\",\"VP\",\"Head of\"],\"remoteOnly\":false,\"maxJobsTotal\":50,\"onlyNewSinceLastRun\":true,\"monitorStateName\":\"target-accounts\"}",
         "options": {
           "timeout": 120000
         }
       },
-      "id": "call-ats",
+      "id": "44444444-4444-4444-8444-444444444003",
       "name": "Check New Target Account Openings",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -61,9 +62,11 @@
     },
     {
       "parameters": {
-        "jsCode": "if (!items.length) return [];\nconst lines = items.slice(0, 15).map(i => {\n  const j = i.json;\n  return `- *${j.company}* [${j.ats}]: *${j.title}* (${j.location || 'Unspecified'}) -> ${j.applyUrl}`;\n});\nreturn [{ json: { text: `*New Target Account Hiring Signals (${items.length})*\\n` + lines.join('\\n') } }];"
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const rows = $input.all().filter(i => i.json && (i.json.jobId || i.json.title));\nif (!rows.length) return [];\nconst lines = rows.slice(0, 15).map(i => {\n  const j = i.json;\n  return `- *${j.company}* [${j.ats}]: *${j.title}* (${j.location || 'Unspecified'}) -> ${j.applyUrl}`;\n});\nreturn [{ json: { text: (`*New Target Account Hiring Signals (${rows.length})*\\n` + lines.join('\\n')).slice(0, 2800) } }];"
       },
-      "id": "format-slack",
+      "id": "44444444-4444-4444-8444-444444444004",
       "name": "Format Hiring Signals Digest",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -74,10 +77,16 @@
     },
     {
       "parameters": {
-        "channel": "#hiring-signals",
-        "text": "={{ $json.text }}"
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "#hiring-signals",
+          "mode": "name"
+        },
+        "text": "={{ $json.text }}",
+        "otherOptions": {}
       },
-      "id": "send-slack",
+      "id": "44444444-4444-4444-8444-444444444005",
       "name": "Send to Slack",
       "type": "n8n-nodes-base.slack",
       "typeVersion": 2.2,
@@ -122,7 +131,12 @@
       ]
     }
   },
+  "active": false,
+  "pinData": {},
   "settings": {
     "executionOrder": "v1"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": false
   }
 }

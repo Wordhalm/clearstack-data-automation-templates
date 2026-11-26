@@ -3,17 +3,17 @@
   "nodes": [
     {
       "parameters": {
-        "content": "## Multi-Signal B2B Buying Intent Radar (ATS Hiring + Google Ads)\n\n### How it works\nThis workflow monitors target B2B accounts from **Google Sheets** every weekday and runs **two HTTP-only Apify Actors in parallel** (zero proxies, zero headless browsers):\n1. [Direct Career Site Jobs Search](https://apify.com/clearstack-data/career-site-jobs-search) — scans Greenhouse, Lever, Ashby, and SmartRecruiters boards (25,787 employers) for new roles, salaries, seniority, and 65+ tech skills.\n2. [Google Ads Transparency Scraper](https://apify.com/clearstack-data/google-ads-transparency-scraper) — detects new Google Search, Display, and YouTube ads plus campaign longevity (`activeDays`).\n\nBoth use incremental cursors (`onlyNewSinceLastRun: true`) so scheduled runs never bill twice for seen items, while sentinel fallback guarantees the merge never stalls on quiet days or single-source errors. Signals are unified across account aliases, scored **0–100**, and routed:\n- **HOT (>= 50)**: Deduplicated Sheet upsert (`signalKey`) + Slack alert to `#sales-signals` in parallel.\n- **WARM (20–49)**: Logged to Google Sheets for weekly review.\n- **QUIET (< 20)**: Filtered out.\n\n### Setup\n1. Create an **HTTP Header Auth** credential: Name = `Authorization`, Value = `Bearer <YOUR_APIFY_TOKEN>`.\n2. Create a Google Sheet with tabs `Target_Accounts` (`accountName`, `domain`, `atsTarget`, `owner`, `active`) and `Buying_Signals`, then replace `YOUR_GOOGLE_SHEET_ID`.\n3. Connect **Slack** (`#sales-signals`, `#ops-alerts`) and activate the schedule.\n\n### Customization\n- Tune role keywords or scoring weights in **Filter & Build Batch Payloads** and **Aggregate & Score Buying Intent per Account**.\n- Set `includeDetails: true` in **Fetch New Competitor Google Ads** for EU DSA impression ranges.",
-        "height": 620,
-        "width": 520,
-        "color": 3
+        "content": "## Multi-Signal B2B Buying Intent Radar (ATS Hiring + Google Ads)\n\n### How it works\nThis workflow monitors target B2B accounts from **Google Sheets** every weekday and runs **two HTTP-only Apify Actors in parallel** (zero proxies, zero headless browsers):\n1. [Direct Career Site Jobs Search](https://apify.com/clearstack-data/career-site-jobs-search) — scans Greenhouse, Lever, Ashby, and SmartRecruiters boards (25,787 employers) for new roles, salaries, seniority, and 65+ tech skills.\n2. [Google Ads Transparency Scraper](https://apify.com/clearstack-data/google-ads-transparency-scraper) — detects new Google Search, Display, and YouTube ads plus campaign longevity (`activeDays`).\n\nBoth use incremental cursors (`onlyNewSinceLastRun: true`) so scheduled runs never bill twice for seen items, while sentinel fallback guarantees the merge never stalls on quiet days or single-source errors. Signals are unified across account aliases, scored **0–100**, and routed:\n- **HOT (>= 50)**: Deduplicated Sheet upsert (`signalKey`) + Slack alert to `#sales-signals` in parallel.\n- **WARM (20–49)**: Logged to Google Sheets for weekly review.\n- **QUIET (< 20)**: Filtered out.\n\n### Setup\n1. Create an **HTTP Header Auth** credential: Name = `Authorization`, Value = `Bearer <YOUR_APIFY_TOKEN>`.\n2. Connect **Google Sheets** and select your spreadsheet (tabs: `Target_Accounts` with columns `accountName`, `domain`, `atsTarget`, `owner`, `active`, plus `Buying_Signals`).\n3. Connect **Slack** (`#sales-signals`, `#ops-alerts`) and activate the schedule.\n\n### Customization\n- Tune role keywords or scoring weights in **Filter & Build Batch Payloads** and **Aggregate & Score Buying Intent per Account**.\n- Set `includeDetails: true` in **Fetch New Competitor Google Ads** for EU DSA impression ranges.",
+        "height": 640,
+        "width": 540,
+        "color": 1
       },
-      "id": "radar-note-overview",
+      "id": "22222222-2222-4222-8222-222222222001",
       "name": "Overview & Setup Guide",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        -380,
+        -400,
         -140
       ]
     },
@@ -24,7 +24,7 @@
         "width": 900,
         "color": 5
       },
-      "id": "radar-note-stage-1",
+      "id": "22222222-2222-4222-8222-222222222002",
       "name": "Stage 1: Target Accounts",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
@@ -40,7 +40,7 @@
         "width": 620,
         "color": 6
       },
-      "id": "radar-note-stage-2",
+      "id": "22222222-2222-4222-8222-222222222003",
       "name": "Stage 2: Parallel Signals",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
@@ -56,7 +56,7 @@
         "width": 1080,
         "color": 4
       },
-      "id": "radar-note-stage-3",
+      "id": "22222222-2222-4222-8222-222222222004",
       "name": "Stage 3: Scoring & Routing",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
@@ -76,7 +76,7 @@
           ]
         }
       },
-      "id": "radar-trigger",
+      "id": "22222222-2222-4222-8222-222222222005",
       "name": "Weekdays at 08:00",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
@@ -90,8 +90,9 @@
         "operation": "read",
         "documentId": {
           "__rl": true,
-          "value": "YOUR_GOOGLE_SHEET_ID",
-          "mode": "id"
+          "value": "",
+          "mode": "list",
+          "cachedResultName": "B2B Buying Intent Radar"
         },
         "sheetName": {
           "__rl": true,
@@ -100,7 +101,7 @@
         },
         "options": {}
       },
-      "id": "radar-read-accounts",
+      "id": "22222222-2222-4222-8222-222222222006",
       "name": "Load Target Accounts from Google Sheets",
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.5,
@@ -111,9 +112,11 @@
     },
     {
       "parameters": {
-        "jsCode": "const companiesSet = new Set();\nconst domainsSet = new Set();\nconst accounts = [];\n\nfor (const item of items) {\n  const r = item.json || {};\n  const activeFlag = String(r.active ?? 'true').trim().toLowerCase();\n  if (activeFlag === 'false' || activeFlag === '0' || activeFlag === 'no') continue;\n\n  const accountName = String(r.accountName || r.company || '').trim();\n  const rawDomain = String(r.domain || '').trim().toLowerCase()\n    .replace(/^https?:\\/\\//, '')\n    .replace(/^www\\./, '')\n    .split(/[/?#]/)[0];\n  const atsTarget = String(r.atsTarget || accountName).trim();\n  if (!accountName && !rawDomain) continue;\n\n  const canonicalName = accountName || rawDomain;\n  if (atsTarget) companiesSet.add(atsTarget);\n  if (rawDomain && rawDomain.includes('.')) domainsSet.add(rawDomain);\n\n  accounts.push({\n    accountName: canonicalName,\n    domain: rawDomain || '',\n    atsTarget: atsTarget || canonicalName,\n    owner: String(r.owner || 'Unassigned').trim(),\n  });\n}\n\nconst companies = Array.from(companiesSet).slice(0, 50);\nconst targets = Array.from(domainsSet).slice(0, 30);\n\nreturn [\n  {\n    json: {\n      hasCompanies: companies.length > 0,\n      hasDomains: targets.length > 0,\n      accountCount: accounts.length,\n      accounts,\n      companies,\n      targets,\n      scanDate: new Date().toISOString().slice(0, 10),\n    },\n  },\n];"
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const inputItems = $input.all();\nconst companiesSet = new Set();\nconst domainsSet = new Set();\nconst accounts = [];\n\nfor (const item of inputItems) {\n  const r = item.json || {};\n  const activeFlag = String(r.active ?? 'true').trim().toLowerCase();\n  if (activeFlag === 'false' || activeFlag === '0' || activeFlag === 'no') continue;\n\n  const accountName = String(r.accountName || r.company || '').trim();\n  const rawDomain = String(r.domain || '').trim().toLowerCase()\n    .replace(/^https?:\\/\\//, '')\n    .replace(/^www\\./, '')\n    .split(/[/?#]/)[0];\n  const atsTarget = String(r.atsTarget || accountName).trim();\n  if (!accountName && !rawDomain) continue;\n\n  const canonicalName = accountName || rawDomain;\n  if (atsTarget) companiesSet.add(atsTarget);\n  if (rawDomain && rawDomain.includes('.')) domainsSet.add(rawDomain);\n\n  accounts.push({\n    accountName: canonicalName,\n    domain: rawDomain || '',\n    atsTarget: atsTarget || canonicalName,\n    owner: String(r.owner || 'Unassigned').trim(),\n  });\n}\n\nconst companies = Array.from(companiesSet).slice(0, 50);\nconst targets = Array.from(domainsSet).slice(0, 30);\n\nreturn [\n  {\n    json: {\n      hasCompanies: companies.length > 0,\n      hasDomains: targets.length > 0,\n      accountCount: accounts.length,\n      accounts,\n      companies,\n      targets,\n      scanDate: new Date().toISOString().slice(0, 10),\n    },\n  },\n];"
       },
-      "id": "radar-build-batch",
+      "id": "22222222-2222-4222-8222-222222222007",
       "name": "Filter & Build Batch Payloads",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -128,7 +131,8 @@
           "options": {
             "caseSensitive": true,
             "leftValue": "",
-            "typeValidation": "strict"
+            "typeValidation": "strict",
+            "version": 2
           },
           "conditions": [
             {
@@ -146,7 +150,7 @@
         },
         "options": {}
       },
-      "id": "radar-if-companies",
+      "id": "22222222-2222-4222-8222-222222222008",
       "name": "Any Companies for ATS Scan?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
@@ -161,7 +165,8 @@
           "options": {
             "caseSensitive": true,
             "leftValue": "",
-            "typeValidation": "strict"
+            "typeValidation": "strict",
+            "version": 2
           },
           "conditions": [
             {
@@ -179,7 +184,7 @@
         },
         "options": {}
       },
-      "id": "radar-if-domains",
+      "id": "22222222-2222-4222-8222-222222222009",
       "name": "Any Domains for Ads Scan?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
@@ -195,13 +200,14 @@
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
+        "contentType": "json",
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify({ companies: $json.companies, keywords: ['Engineer', 'AI', 'Data', 'Security', 'Platform', 'RevOps', 'Sales'], includeDescriptions: true, onlyNewSinceLastRun: true, monitorStateName: 'b2b-radar-jobs', maxJobsTotal: 150 }) }}",
         "options": {
           "timeout": 120000
         }
       },
-      "id": "radar-http-jobs",
+      "id": "22222222-2222-4222-8222-222222222010",
       "name": "Fetch Live ATS Hiring Signals",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -219,13 +225,14 @@
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
+        "contentType": "json",
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify({ targets: $json.targets, region: 'ALL', format: 'ALL', dateRangeDays: 30, maxAdsPerTarget: 20, includeDetails: false, onlyNewSinceLastRun: true, monitorStateName: 'b2b-radar-ads' }) }}",
         "options": {
           "timeout": 120000
         }
       },
-      "id": "radar-http-ads",
+      "id": "22222222-2222-4222-8222-222222222011",
       "name": "Fetch New Competitor Google Ads",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -238,10 +245,16 @@
     },
     {
       "parameters": {
-        "channel": "#ops-alerts",
-        "text": "={{ ':warning: B2B Buying Intent Radar encountered an Apify API error.\\n• Details: ' + ($json.error?.message || $json.message || 'Check Apify run logs and token') }}"
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "#ops-alerts",
+          "mode": "name"
+        },
+        "text": "={{ ':warning: B2B Buying Intent Radar encountered an Apify API error.\\n• Details: ' + ($json.error?.message || $json.message || 'Check Apify run logs and token') }}",
+        "otherOptions": {}
       },
-      "id": "radar-slack-error",
+      "id": "22222222-2222-4222-8222-222222222012",
       "name": "Alert Ops: Signal Fetch Error",
       "type": "n8n-nodes-base.slack",
       "typeVersion": 2.2,
@@ -252,9 +265,11 @@
     },
     {
       "parameters": {
-        "jsCode": "const valid = items\n  .filter(i => i.json && (i.json.jobId || i.json.title))\n  .map(i => ({ json: { ...i.json, _signalType: 'hiring' } }));\nreturn valid.length > 0 ? valid : [{ json: { _signalType: 'empty' } }];"
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const valid = $input.all()\n  .filter(i => i.json && (i.json.jobId || i.json.title))\n  .map(i => ({ json: { ...i.json, _signalType: 'hiring' } }));\nreturn valid.length > 0 ? valid : [{ json: { _signalType: 'empty' } }];"
       },
-      "id": "radar-tag-jobs",
+      "id": "22222222-2222-4222-8222-222222222013",
       "name": "Tag Hiring Signal Items",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -265,9 +280,11 @@
     },
     {
       "parameters": {
-        "jsCode": "const valid = items\n  .filter(i => i.json && (i.json.creativeId || i.json.advertiserId))\n  .map(i => ({ json: { ...i.json, _signalType: 'ads' } }));\nreturn valid.length > 0 ? valid : [{ json: { _signalType: 'empty' } }];"
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const valid = $input.all()\n  .filter(i => i.json && (i.json.creativeId || i.json.advertiserId))\n  .map(i => ({ json: { ...i.json, _signalType: 'ads' } }));\nreturn valid.length > 0 ? valid : [{ json: { _signalType: 'empty' } }];"
       },
-      "id": "radar-tag-ads",
+      "id": "22222222-2222-4222-8222-222222222014",
       "name": "Tag Ad Signal Items",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -279,9 +296,9 @@
     {
       "parameters": {
         "mode": "append",
-        "options": {}
+        "numberInputs": 2
       },
-      "id": "radar-merge",
+      "id": "22222222-2222-4222-8222-222222222015",
       "name": "Combine Hiring & Ad Signals",
       "type": "n8n-nodes-base.merge",
       "typeVersion": 3,
@@ -292,9 +309,11 @@
     },
     {
       "parameters": {
-        "jsCode": "const HIGH_SENIORITIES = new Set(['senior', 'staff', 'lead', 'manager', 'director', 'executive']);\nconst STRATEGIC_STACK = new Set(['Kubernetes', 'Snowflake', 'Databricks', 'PyTorch', 'LLM', 'Terraform', 'Salesforce', 'HubSpot']);\n\nlet accountsMeta = [];\nlet scanDate = new Date().toISOString().slice(0, 10);\ntry {\n  const batch = $('Filter & Build Batch Payloads').first()?.json;\n  if (Array.isArray(batch?.accounts)) accountsMeta = batch.accounts;\n  if (batch?.scanDate) scanDate = batch.scanDate;\n} catch {\n  // Standalone test fallback\n}\n\nconst normKey = (s) => String(s || '')\n  .toLowerCase()\n  .replace(/^https?:\\/\\//, '')\n  .replace(/^www\\./, '')\n  .replace(/^[a-z]+:/, '')\n  .replace(/\\.[a-z]{2,}$/i, '')\n  .replace(/\\b(inc|ltd|llc|sas|sa|gmbh|ag|corp|corporation|plc)\\b/g, '')\n  .replace(/[^a-z0-9]/g, '');\n\n// Index every configured account by all its aliases (accountName, domain root, full domain without dots, atsTarget slug)\nconst metaByAlias = new Map();\nfor (const acc of accountsMeta) {\n  const canonicalKey = normKey(acc.accountName || acc.domain);\n  if (!canonicalKey) continue;\n  const entry = { ...acc, canonicalKey };\n  const aliases = [\n    normKey(acc.accountName),\n    normKey(acc.domain),\n    String(acc.domain || '').toLowerCase().replace(/[^a-z0-9]/g, ''),\n    normKey(acc.atsTarget),\n  ].filter(Boolean);\n  for (const a of aliases) metaByAlias.set(a, entry);\n}\n\nconst grouped = new Map();\nconst getBucket = (candidates, fallbackName, fallbackDomain) => {\n  let matchedMeta = null;\n  for (const c of candidates) {\n    if (!c) continue;\n    const rawNoPunct = String(c).toLowerCase().replace(/[^a-z0-9]/g, '');\n    matchedMeta = metaByAlias.get(normKey(c)) || metaByAlias.get(rawNoPunct) || null;\n    if (matchedMeta) break;\n  }\n  const key = matchedMeta?.canonicalKey || normKey(fallbackDomain || fallbackName);\n  if (!key) return null;\n  if (!grouped.has(key)) {\n    grouped.set(key, {\n      accountKey: key,\n      accountName: matchedMeta?.accountName || fallbackName || fallbackDomain,\n      domain: matchedMeta?.domain || fallbackDomain || '',\n      owner: matchedMeta?.owner || 'Unassigned',\n      jobs: [],\n      ads: [],\n    });\n  }\n  return grouped.get(key);\n};\n\nfor (const item of items) {\n  const d = item.json || {};\n  if (d._signalType === 'hiring') {\n    const b = getBucket([d.company, d.companySlug], d.company || d.companySlug, '');\n    if (b) b.jobs.push(d);\n  } else if (d._signalType === 'ads') {\n    const b = getBucket([d.domain, d.target, d.advertiserName], d.advertiserName || d.target, d.domain || d.target);\n    if (b) b.ads.push(d);\n  }\n}\n\nconst scored = [];\nfor (const b of grouped.values()) {\n  const newJobsCount = b.jobs.length;\n  const newAdsCount = b.ads.length;\n  const seniorRoles = b.jobs.filter(j => HIGH_SENIORITIES.has(String(j.seniority || '').toLowerCase()));\n  const highSalaryRoles = b.jobs.filter(j => Number(j.salaryAnnualUsdMax || j.salaryAnnualUsdMin || 0) >= 150000);\n  const techSet = new Set();\n  for (const j of b.jobs) {\n    if (Array.isArray(j.techStack)) j.techStack.forEach(t => techSet.add(t));\n  }\n  const strategicTech = Array.from(techSet).filter(t => STRATEGIC_STACK.has(t));\n  const adFormats = Array.from(new Set(b.ads.map(a => a.format).filter(Boolean)));\n  const evergreenAds = b.ads.filter(a => Number(a.activeDays || 0) >= 30);\n\n  let intentScore = 0;\n  intentScore += Math.min(40, newJobsCount * 10);\n  if (seniorRoles.length > 0) intentScore += 15;\n  if (highSalaryRoles.length > 0 || strategicTech.length > 0) intentScore += 10;\n  intentScore += Math.min(25, newAdsCount * 10);\n  if (adFormats.length >= 2 || evergreenAds.length > 0) intentScore += 10;\n  intentScore = Math.min(100, intentScore);\n\n  const intentTier = intentScore >= 50 ? 'HOT' : intentScore >= 20 ? 'WARM' : 'QUIET';\n  if (intentTier === 'QUIET') continue;\n\n  const angleParts = [];\n  if (newJobsCount > 0) {\n    angleParts.push(`Hiring ${newJobsCount} new role(s) (${seniorRoles.length} senior/leadership)`);\n  }\n  if (strategicTech.length > 0) {\n    angleParts.push(`Active stack: ${strategicTech.slice(0, 5).join(', ')}`);\n  }\n  if (newAdsCount > 0) {\n    angleParts.push(`${newAdsCount} new Google Ad(s) (${adFormats.join('/') || 'mixed'})`);\n  }\n\n  const topJobLinks = b.jobs.slice(0, 3).map(j => `${j.title}${j.salaryRaw ? ` (${j.salaryRaw})` : ''} -> ${j.applyUrl}`).join('\\n');\n  const topAdLinks = b.ads.slice(0, 3).map(a => `[${a.format}] ${a.firstShownDate || 'new'} (${a.activeDays || 1}d) -> ${a.adUrl}`).join('\\n');\n\n  scored.push({\n    json: {\n      signalKey: `${scanDate}:${b.accountKey}`,\n      scanDate,\n      accountName: b.accountName,\n      domain: b.domain,\n      owner: b.owner,\n      intentScore,\n      intentTier,\n      newJobsCount,\n      seniorRolesCount: seniorRoles.length,\n      highSalaryRolesCount: highSalaryRoles.length,\n      detectedTechStack: Array.from(techSet).slice(0, 12).join(', '),\n      newAdsCount,\n      adFormats: adFormats.join(', '),\n      outreachAngle: angleParts.join(' • '),\n      topJobLinks,\n      topAdLinks,\n    },\n  });\n}\n\nscored.sort((a, b) => b.json.intentScore - a.json.intentScore);\nreturn scored;"
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const HIGH_SENIORITIES = new Set(['senior', 'staff', 'lead', 'manager', 'director', 'executive']);\nconst STRATEGIC_STACK = new Set(['Kubernetes', 'Snowflake', 'Databricks', 'PyTorch', 'LLM', 'Terraform', 'Salesforce', 'HubSpot']);\n\nconst escSlack = (s) => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');\n\nlet accountsMeta = [];\nlet scanDate = new Date().toISOString().slice(0, 10);\ntry {\n  const batch = $('Filter & Build Batch Payloads').first()?.json;\n  if (Array.isArray(batch?.accounts)) accountsMeta = batch.accounts;\n  if (batch?.scanDate) scanDate = batch.scanDate;\n} catch {\n  // Standalone test fallback\n}\n\nconst normKey = (s) => String(s || '')\n  .toLowerCase()\n  .replace(/^https?:\\/\\//, '')\n  .replace(/^www\\./, '')\n  .replace(/^[a-z]+:/, '')\n  .replace(/\\.(?:co|com|org|net)\\.[a-z]{2}$|\\.[a-z]{2,}$/i, '')\n  .replace(/\\b(inc|ltd|llc|sas|sa|gmbh|ag|corp|corporation|plc)\\b/g, '')\n  .replace(/[^a-z0-9]/g, '');\n\n// Index every configured account by all its aliases (accountName, domain root, full domain without dots, atsTarget slug)\nconst metaByAlias = new Map();\nfor (const acc of accountsMeta) {\n  const canonicalKey = normKey(acc.accountName || acc.domain);\n  if (!canonicalKey) continue;\n  const entry = { ...acc, canonicalKey };\n  const aliases = [\n    normKey(acc.accountName),\n    normKey(acc.domain),\n    String(acc.domain || '').toLowerCase().replace(/[^a-z0-9]/g, ''),\n    normKey(acc.atsTarget),\n  ].filter(Boolean);\n  for (const a of aliases) metaByAlias.set(a, entry);\n}\n\nconst grouped = new Map();\nconst getBucket = (candidates, fallbackName, fallbackDomain) => {\n  let matchedMeta = null;\n  for (const c of candidates) {\n    if (!c) continue;\n    const rawNoPunct = String(c).toLowerCase().replace(/[^a-z0-9]/g, '');\n    matchedMeta = metaByAlias.get(normKey(c)) || metaByAlias.get(rawNoPunct) || null;\n    if (matchedMeta) break;\n  }\n  const key = matchedMeta?.canonicalKey || normKey(fallbackDomain || fallbackName);\n  if (!key) return null;\n  if (!grouped.has(key)) {\n    grouped.set(key, {\n      accountKey: key,\n      accountName: matchedMeta?.accountName || fallbackName || fallbackDomain,\n      domain: matchedMeta?.domain || fallbackDomain || '',\n      owner: matchedMeta?.owner || 'Unassigned',\n      jobs: [],\n      ads: [],\n    });\n  }\n  return grouped.get(key);\n};\n\nfor (const item of $input.all()) {\n  const d = item.json || {};\n  if (d._signalType === 'hiring') {\n    const b = getBucket([d.company, d.companySlug], d.company || d.companySlug, '');\n    if (b) b.jobs.push(d);\n  } else if (d._signalType === 'ads') {\n    const b = getBucket([d.domain, d.target, d.advertiserName], d.advertiserName || d.target, d.domain || d.target);\n    if (b) b.ads.push(d);\n  }\n}\n\nconst scored = [];\nfor (const b of grouped.values()) {\n  const newJobsCount = b.jobs.length;\n  const newAdsCount = b.ads.length;\n  const seniorRoles = b.jobs.filter(j => HIGH_SENIORITIES.has(String(j.seniority || '').toLowerCase()));\n  const highSalaryRoles = b.jobs.filter(j => Number(j.salaryAnnualUsdMax || j.salaryAnnualUsdMin || 0) >= 150000);\n  const techSet = new Set();\n  for (const j of b.jobs) {\n    if (Array.isArray(j.techStack)) j.techStack.forEach(t => techSet.add(t));\n  }\n  const strategicTech = Array.from(techSet).filter(t => STRATEGIC_STACK.has(t));\n  const adFormats = Array.from(new Set(b.ads.map(a => a.format).filter(Boolean)));\n  const evergreenAds = b.ads.filter(a => Number(a.activeDays || 0) >= 30);\n\n  let intentScore = 0;\n  intentScore += Math.min(40, newJobsCount * 10);\n  if (seniorRoles.length > 0) intentScore += 15;\n  if (highSalaryRoles.length > 0 || strategicTech.length > 0) intentScore += 10;\n  intentScore += Math.min(25, newAdsCount * 10);\n  if (adFormats.length >= 2 || evergreenAds.length > 0) intentScore += 10;\n  intentScore = Math.min(100, intentScore);\n\n  const intentTier = intentScore >= 50 ? 'HOT' : intentScore >= 20 ? 'WARM' : 'QUIET';\n  if (intentTier === 'QUIET') continue;\n\n  const angleParts = [];\n  if (newJobsCount > 0) {\n    angleParts.push(`Hiring ${newJobsCount} new role(s) (${seniorRoles.length} senior/leadership)`);\n  }\n  if (strategicTech.length > 0) {\n    angleParts.push(`Active stack: ${strategicTech.slice(0, 5).join(', ')}`);\n  }\n  if (newAdsCount > 0) {\n    angleParts.push(`${newAdsCount} new Google Ad(s) (${adFormats.join('/') || 'mixed'})`);\n  }\n\n  const topJobLinks = b.jobs.slice(0, 3).map(j => `${j.title}${j.salaryRaw ? ` (${j.salaryRaw})` : ''} -> ${j.applyUrl}`).join('\\n');\n  const topAdLinks = b.ads.slice(0, 3).map(a => `[${a.format}] ${a.firstShownDate || 'new'} (${a.activeDays || 1}d) -> ${a.adUrl}`).join('\\n');\n  const detectedTechStack = Array.from(techSet).slice(0, 12).join(', ');\n  const outreachAngle = angleParts.join(' • ');\n\n  const slackLines = [\n    `:fire: *HOT Buying Signal — ${escSlack(b.accountName)}* (Score ${intentScore}/100 | Owner: ${escSlack(b.owner)})`,\n    `• *Summary:* ${escSlack(outreachAngle)}`,\n  ];\n  if (detectedTechStack) slackLines.push(`• *Tech Stack:* ${escSlack(detectedTechStack)}`);\n  if (topJobLinks) slackLines.push(`*Top Open Roles:*\\n${escSlack(topJobLinks)}`);\n  if (topAdLinks) slackLines.push(`*New Google Ads:*\\n${escSlack(topAdLinks)}`);\n  const slackMessage = slackLines.join('\\n').slice(0, 2800);\n\n  scored.push({\n    json: {\n      signalKey: `${scanDate}:${b.accountKey}`,\n      scanDate,\n      accountName: b.accountName,\n      domain: b.domain,\n      owner: b.owner,\n      intentScore,\n      intentTier,\n      newJobsCount,\n      seniorRolesCount: seniorRoles.length,\n      highSalaryRolesCount: highSalaryRoles.length,\n      detectedTechStack,\n      newAdsCount,\n      adFormats: adFormats.join(', '),\n      outreachAngle,\n      topJobLinks,\n      topAdLinks,\n      slackMessage,\n    },\n  });\n}\n\nscored.sort((a, b) => b.json.intentScore - a.json.intentScore);\nreturn scored;"
       },
-      "id": "radar-score-intent",
+      "id": "22222222-2222-4222-8222-222222222016",
       "name": "Aggregate & Score Buying Intent per Account",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -312,7 +331,8 @@
                 "options": {
                   "caseSensitive": true,
                   "leftValue": "",
-                  "typeValidation": "strict"
+                  "typeValidation": "strict",
+                  "version": 2
                 },
                 "conditions": [
                   {
@@ -335,7 +355,8 @@
                 "options": {
                   "caseSensitive": true,
                   "leftValue": "",
-                  "typeValidation": "strict"
+                  "typeValidation": "strict",
+                  "version": 2
                 },
                 "conditions": [
                   {
@@ -355,9 +376,11 @@
             }
           ]
         },
-        "options": {}
+        "options": {
+          "fallbackOutput": "none"
+        }
       },
-      "id": "radar-switch-tier",
+      "id": "22222222-2222-4222-8222-222222222017",
       "name": "Route by Buying Intent Tier",
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3.2,
@@ -371,8 +394,9 @@
         "operation": "appendOrUpdate",
         "documentId": {
           "__rl": true,
-          "value": "YOUR_GOOGLE_SHEET_ID",
-          "mode": "id"
+          "value": "",
+          "mode": "list",
+          "cachedResultName": "B2B Buying Intent Radar"
         },
         "sheetName": {
           "__rl": true,
@@ -381,14 +405,27 @@
         },
         "columns": {
           "mappingMode": "autoMapInputData",
+          "value": {},
           "matchingColumns": [
             "signalKey"
           ],
-          "value": {}
+          "schema": [
+            {
+              "id": "signalKey",
+              "displayName": "signalKey",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
         },
         "options": {}
       },
-      "id": "radar-sheet-hot",
+      "id": "22222222-2222-4222-8222-222222222018",
       "name": "Upsert Hot Account to Signals Sheet",
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.5,
@@ -399,10 +436,16 @@
     },
     {
       "parameters": {
-        "channel": "#sales-signals",
-        "text": "={{ ':fire: *HOT Buying Signal — ' + $json.accountName + '* (Score ' + $json.intentScore + '/100 | Owner: ' + $json.owner + ')\\n• *Summary:* ' + $json.outreachAngle + ($json.detectedTechStack ? '\\n• *Tech Stack:* ' + $json.detectedTechStack : '') + ($json.topJobLinks ? '\\n*Top Open Roles:*\\n' + $json.topJobLinks : '') + ($json.topAdLinks ? '\\n*New Google Ads:*\\n' + $json.topAdLinks : '') }}"
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "#sales-signals",
+          "mode": "name"
+        },
+        "text": "={{ $json.slackMessage }}",
+        "otherOptions": {}
       },
-      "id": "radar-slack-hot",
+      "id": "22222222-2222-4222-8222-222222222019",
       "name": "Send Priority Sales Alert to #sales-signals",
       "type": "n8n-nodes-base.slack",
       "typeVersion": 2.2,
@@ -416,8 +459,9 @@
         "operation": "appendOrUpdate",
         "documentId": {
           "__rl": true,
-          "value": "YOUR_GOOGLE_SHEET_ID",
-          "mode": "id"
+          "value": "",
+          "mode": "list",
+          "cachedResultName": "B2B Buying Intent Radar"
         },
         "sheetName": {
           "__rl": true,
@@ -426,14 +470,27 @@
         },
         "columns": {
           "mappingMode": "autoMapInputData",
+          "value": {},
           "matchingColumns": [
             "signalKey"
           ],
-          "value": {}
+          "schema": [
+            {
+              "id": "signalKey",
+              "displayName": "signalKey",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
         },
         "options": {}
       },
-      "id": "radar-sheet-warm",
+      "id": "22222222-2222-4222-8222-222222222020",
       "name": "Log Warm Signal to Signals Sheet",
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.5,
@@ -632,7 +689,12 @@
       ]
     }
   },
+  "active": false,
+  "pinData": {},
   "settings": {
     "executionOrder": "v1"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": false
   }
 }
