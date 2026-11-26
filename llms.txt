@@ -1,22 +1,27 @@
 # ClearStack Data — Apify Actors, n8n Templates & MCP Tools
 
-> Lightweight, HTTP-only Apify Actors and ready-to-import n8n workflow templates for competitor ad intelligence, public Telegram channel monitoring, direct ATS career-site job search (25,787 employers), EU VAT/KYB verification, and European public procurement monitoring.
+> Lightweight, HTTP-only Apify Actors and production-grade n8n workflow templates for EU KYB & OFAC/EU/UN sanctions compliance, multi-signal B2B buying intent (ATS hiring + Google Ads), public Telegram OSINT monitoring, and European public procurement monitoring.
 
 - Developer Profile: https://apify.com/clearstack-data
 - GitHub Templates Repo: https://github.com/Wordhalm/clearstack-data-automation-templates
-- Dedicated MCP Server: https://github.com/Wordhalm/clearstack-data-mcp (`npx -y clearstack-data-mcp`, Official MCP Registry `io.github.Wordhalm/clearstack-data-mcp`, npm `https://www.npmjs.com/package/clearstack-data-mcp`)
+- Dedicated MCP Server (`v0.3.0`, 6 tools): https://github.com/Wordhalm/clearstack-data-mcp (`npx -y clearstack-data-mcp`, Official MCP Registry `io.github.Wordhalm/clearstack-data-mcp`, npm `https://www.npmjs.com/package/clearstack-data-mcp`)
 - Apify Remote MCP Server: https://mcp.apify.com
 
 ## Actors
 
-- [Google Ads Transparency Center Scraper & Competitor Monitor](https://apify.com/clearstack-data/google-ads-transparency-scraper): Bulk extract ads by domain, advertiser ID, or URL with region/format/date filters, EU DSA targeting details, and incremental `onlyNewSinceLastRun` monitoring. ($0.002/run + $1.20/1,000 ads)
-- [Telegram Public Channel Scraper & Incremental Monitor](https://apify.com/clearstack-data/telegram-public-channel-monitor): Scrape public Telegram channels (`t.me/s/`) without login, phone number, or proxies. Extracts posts, views, reactions, media URLs, and supports `onlyNewSinceLastRun` cursor mode. ($0.002/run + $1.50/1,000 posts)
-- [Direct Career Site Jobs Search (25K+ Greenhouse, Lever, Ashby)](https://apify.com/clearstack-data/career-site-jobs-search): Search live direct-apply jobs across 25,787 employers on Greenhouse, Lever, Ashby, and SmartRecruiters public JSON APIs. Built for Claude MCP job search and B2B hiring signals. ($0.002/run + $1.50/1,000 jobs)
-- [EU Company KYB, VAT (VIES) & Official Registry Enricher](https://apify.com/clearstack-data/eu-company-kyb-enricher): Validate EU-27 VAT via VIES and enrich companies across France DINUM SIRENE/RNE, Switzerland Zefix, Norway Brreg, Finland PRH/YTJ, and GLEIF LEI with zero API keys. ($4.00/1,000 companies)
-- [EU TED, France BOAMP & UK Public Tenders Monitor](https://apify.com/clearstack-data/eu-public-tenders-monitor): Unified daily monitor across official EU TED v3, France BOAMP, and UK Find a Tender OCDS APIs. ($2.00/1,000 tenders)
+- [EU Company KYB, VAT (VIES) & OFAC/EU/UN Sanctions Enricher](https://apify.com/clearstack-data/eu-company-kyb-enricher): Validate EU-27 VAT via VIES, enrich FR SIRENE/RNE, CH Zefix, NO Brreg, FI PRH/YTJ & GLEIF LEI, and screen entities & officers live against US OFAC SDN/ALT, EU FSF & UN SC sanctions with zero API keys. ($4.00/1,000 companies)
+- [Direct Career Site Jobs Search (25K+ Greenhouse, Lever, Ashby)](https://apify.com/clearstack-data/career-site-jobs-search): Search live direct-apply jobs across 25,787 employers with structured USD-normalized salaries, seniority, 65+ tech stack skills, and incremental `onlyNewSinceLastRun` hiring alerts. ($0.002/run + $1.50/1,000 jobs)
+- [Google Ads Transparency Center Scraper & Competitor Monitor](https://apify.com/clearstack-data/google-ads-transparency-scraper): Bulk extract ads by domain, advertiser ID, or URL with `minActiveDays` longevity filter, EU DSA impression ranges & targeting flags, optional proxy support, and `onlyNewSinceLastRun` monitoring. ($0.002/run + $1.20/1,000 ads)
+- [Telegram Public Channel Scraper & Incremental Monitor](https://apify.com/clearstack-data/telegram-public-channel-monitor): Scrape public Telegram channels (`t.me/s/`) without login, phone number, or proxies. Extracts posts, views, reactions, engagement rates, external domains, `$TICKERS`, EVM/BTC/SOL wallets, and supports `onlyNewSinceLastRun` cursor mode. ($0.002/run + $1.50/1,000 posts)
+- [EU TED, France BOAMP & UK Public Tenders Monitor](https://apify.com/clearstack-data/eu-public-tenders-monitor): Unified daily monitor across official EU TED v3, France BOAMP, and UK Find a Tender OCDS APIs with `onlyNewSinceLastRun`, `noticeCategory` (`OPEN_TENDER`, `CONTRACT_AWARD`, `PLANNING`), value range filters, and contract winners. ($2.00/1,000 tenders)
 - [Website AI-Readiness (GEO), SEO & Tech Stack Auditor](https://apify.com/clearstack-data/ai-readiness-geo-auditor): Bulk check `llms.txt`, GPTBot/ClaudeBot/PerplexityBot robots rules, structured data, technical SEO, security headers, and tech stack. ($4.00/1,000 domains)
 
-## Ready-to-Import n8n Workflow JSONs
+## Flagship Production n8n Workflow JSONs (Multi-Branch)
+
+- [eu-vendor-kyb-sanctions-compliance-gate.json](https://raw.githubusercontent.com/Wordhalm/clearstack-data-automation-templates/main/eu-vendor-kyb-sanctions-compliance-gate.json): 16-node EU vendor onboarding compliance gate (Form + Sheet trigger, input validation, VIES + KYB + OFAC/EU/UN screening, 3-way BLOCKED/MANUAL_REVIEW/APPROVED routing, Sheets audit trail & Slack alerts).
+- [b2b-account-buying-signals-pipeline.json](https://raw.githubusercontent.com/Wordhalm/clearstack-data-automation-templates/main/b2b-account-buying-signals-pipeline.json): 16-node multi-signal B2B buying intent radar combining ATS hiring signals + Google Ads Transparency in parallel with alias unification, 0–100 intent scoring, and HOT/WARM routing.
+
+## Lightweight Quickstart n8n Workflow JSONs
 
 - [daily-competitor-google-ads-slack-alert.json](https://raw.githubusercontent.com/Wordhalm/clearstack-data-automation-templates/main/daily-competitor-google-ads-slack-alert.json)
 - [telegram-channels-ai-digest-slack.json](https://raw.githubusercontent.com/Wordhalm/clearstack-data-automation-templates/main/telegram-channels-ai-digest-slack.json)

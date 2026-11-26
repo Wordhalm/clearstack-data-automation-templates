@@ -1,0 +1,623 @@
+{
+  "name": "Automated EU Vendor KYB, VAT (VIES) & OFAC/EU/UN Sanctions Compliance Gate",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Automated EU Vendor KYB, VAT (VIES) & Sanctions Compliance Gate\n\n### How it works\nThis workflow automates European vendor onboarding and compliance screening end-to-end. Submissions arrive from an **n8n Form** or weekday batch rows in **Google Sheets**, get normalized and validated before calling any API, and are screened live via the [EU Company KYB & Sanctions Enricher](https://apify.com/clearstack-data/eu-company-kyb-enricher) Apify Actor (EU-27 VIES VAT, FR SIRENE/RNE, CH Zefix, NO Brreg, FI PRH, GLEIF LEI, plus OFAC SDN/ALT, EU FSF, and UN SC sanctions on entities and officers).\n\nEach vendor is scored (0–100) and routed across **3 branches** with Sheets logging and Slack alerts in parallel:\n- **BLOCKED**: Sanctions match, inactive entity, invalid VAT, or insolvency -> Audit Sheet + `#compliance` alert.\n- **MANUAL_REVIEW**: Temporary VIES outage (`VAT_UNVERIFIED`), partial/unmatched entity, unavailable sanctions feed, or spend >= €50,000 -> Audit Sheet + `#finance-ops`.\n- **APPROVED**: Active verified entity with `CLEAR` sanctions -> deduplicated upsert into `Approved_Vendors` + `#procurement` notice.\n\n### Setup\n1. Create an **HTTP Header Auth** credential: Name = `Authorization`, Value = `Bearer <YOUR_APIFY_TOKEN>`.\n2. Connect **Google Sheets** and replace `YOUR_GOOGLE_SHEET_ID` (tabs: `Pending_Vendors`, `Compliance_Audit_Log`, `Approved_Vendors`).\n3. Connect **Slack** and pick `#compliance`, `#finance-ops`, `#procurement`, and `#ops-alerts`.\n4. Test via the **Vendor Onboarding Form** or activate the schedule.\n\n### Customization\n- Edit `HIGH_VALUE_THRESHOLD_EUR` (default `50000`) in **Evaluate Compliance Decision & Risk Score**.\n- Add `companiesHouseApiKey` in the HTTP JSON body to enrich UK companies by number.",
+        "height": 600,
+        "width": 520,
+        "color": 3
+      },
+      "id": "note-overview",
+      "name": "Overview & Setup Guide",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -380,
+        -140
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## 1. Intake & Input Validation\nAccepts real-time submissions via **Vendor Onboarding Form** or weekday batch rows from **Google Sheets**, strips formatting noise, and rejects invalid inputs before spending API credits.",
+        "height": 520,
+        "width": 940,
+        "color": 5
+      },
+      "id": "note-stage-1",
+      "name": "Stage 1: Intake & Validation",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        180,
+        -140
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## 2. Live KYB, VIES VAT & Sanctions Check\nCalls Apify (`eu-company-kyb-enricher`) with a `maxTotalChargeUsd=0.05` spend cap, scores compliance risk, and routes invalid inputs or API failures to `#ops-alerts`.",
+        "height": 520,
+        "width": 620,
+        "color": 6
+      },
+      "id": "note-stage-2",
+      "name": "Stage 2: KYB & Sanctions",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1160,
+        -140
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## 3. Three-Way Compliance Routing & Audit Trail\nSplits every evaluated vendor into **BLOCKED**, **MANUAL_REVIEW**, or **APPROVED**, executing audit logging / deduplicated master-sheet upsert (`appendOrUpdate`) and role-specific Slack alerts in parallel.",
+        "height": 760,
+        "width": 720,
+        "color": 4
+      },
+      "id": "note-stage-3",
+      "name": "Stage 3: Routing & Audit",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1820,
+        -180
+      ]
+    },
+    {
+      "parameters": {
+        "formTitle": "EU Vendor Compliance Onboarding",
+        "formDescription": "Submit a European vendor for automated KYB, EU VAT (VIES), and live OFAC/EU/UN sanctions verification.",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Vendor Identifier or Legal Name",
+              "placeholder": "FR22424761419, CHE-105.909.036, or Mistral AI",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Country (ISO-2, optional)",
+              "placeholder": "FR, DE, CH, NO, FI, NL, ES, IT",
+              "requiredField": false
+            },
+            {
+              "fieldLabel": "Estimated Annual Spend (EUR)",
+              "fieldType": "number",
+              "placeholder": "25000",
+              "requiredField": false
+            },
+            {
+              "fieldLabel": "Requester Email",
+              "fieldType": "email",
+              "placeholder": "buyer@example.com",
+              "requiredField": false
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "trigger-form",
+      "name": "Vendor Onboarding Form",
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.2,
+      "position": [
+        240,
+        20
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "30 8 * * 1-5"
+            }
+          ]
+        }
+      },
+      "id": "trigger-schedule",
+      "name": "Weekdays at 08:30 (Batch Check)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        240,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Pending_Vendors",
+          "mode": "name"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "complianceStatus",
+              "lookupValue": "PENDING"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "sheets-read-pending",
+      "name": "Read Pending Vendors from Sheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        480,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const output = [];\nfor (const item of items) {\n  const d = item.json || {};\n  const rawQuery = String(\n    d['Vendor Identifier or Legal Name'] ?? d.query ?? d.vatNumber ?? d.vendorName ?? ''\n  ).trim();\n  const rawCountry = String(\n    d['Country (ISO-2, optional)'] ?? d.defaultCountry ?? d.country ?? ''\n  ).trim().toUpperCase().replace(/[^A-Z]/g, '').slice(0, 2);\n  const spendRaw = d['Estimated Annual Spend (EUR)'] ?? d.annualSpendEur ?? 0;\n  const annualSpendEur = Number.isFinite(Number(spendRaw)) && Number(spendRaw) >= 0 ? Number(spendRaw) : 0;\n  const requesterEmail = String(d['Requester Email'] ?? d.requesterEmail ?? '').trim();\n\n  const cleanedQuery = rawQuery.replace(/\\s+/g, ' ').trim();\n  const isValid = cleanedQuery.length >= 2 && cleanedQuery.length <= 160;\n  const validationError = isValid\n    ? null\n    : 'Vendor identifier or legal name must be between 2 and 160 characters.';\n\n  output.push({\n    json: {\n      query: cleanedQuery,\n      defaultCountry: rawCountry,\n      annualSpendEur,\n      requesterEmail: requesterEmail || 'unspecified',\n      submittedAt: new Date().toISOString(),\n      isValid,\n      validationError,\n    },\n  });\n}\nreturn output;"
+      },
+      "id": "code-validate-input",
+      "name": "Normalize & Validate Vendor Input",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        700,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "cond-is-valid",
+              "leftValue": "={{ $json.isValid }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "if-valid-input",
+      "name": "Is Vendor Input Valid?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        940,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "channel": "#ops-alerts",
+        "text": "={{ ':warning: Invalid vendor onboarding submission rejected before KYB check.\\n• Input: `' + ($json.query || '(empty)') + '`\\n• Reason: ' + $json.validationError + '\\n• Requester: ' + $json.requesterEmail }}"
+      },
+      "id": "slack-invalid-input",
+      "name": "Notify Ops: Invalid Vendor Input",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.2,
+      "position": [
+        1240,
+        260
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.apify.com/v2/acts/clearstack-data~eu-company-kyb-enricher/run-sync-get-dataset-items?maxTotalChargeUsd=0.05",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ queries: [$json.query], defaultCountry: $json.defaultCountry || '', validateVat: true, enrichGleifLei: true, screenSanctions: true, concurrency: 1 }) }}",
+        "options": {
+          "timeout": 90000
+        }
+      },
+      "id": "http-kyb-screen",
+      "name": "Screen Company (KYB + VIES + Sanctions)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "onError": "continueErrorOutput",
+      "position": [
+        1240,
+        60
+      ]
+    },
+    {
+      "parameters": {
+        "channel": "#ops-alerts",
+        "text": "={{ ':rotating_light: EU KYB & Sanctions API request failed.\\n• Error: ' + ($json.error?.message || $json.message || 'Unknown upstream error') + '\\n• Action: Check APIFY_TOKEN / Apify credit balance and retry.' }}"
+      },
+      "id": "slack-api-error",
+      "name": "Alert Ops: KYB API Failure",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.2,
+      "position": [
+        1540,
+        260
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const HIGH_VALUE_THRESHOLD_EUR = 50000;\nconst results = [];\n\n// Build query-keyed lookup from validated inputs so batch runs never misalign when invalid rows were filtered out\nconst metaByQuery = new Map();\nlet defaultMeta = { annualSpendEur: 0, requesterEmail: 'unspecified', defaultCountry: '', submittedAt: new Date().toISOString() };\ntry {\n  const metaNodes = $('Normalize & Validate Vendor Input').all();\n  for (const m of metaNodes) {\n    const q = String(m.json?.query || '').trim().toLowerCase();\n    if (q) metaByQuery.set(q, m.json);\n  }\n  if (metaNodes.length === 1 && metaNodes[0]?.json) {\n    defaultMeta = metaNodes[0].json;\n  }\n} catch {\n  // Fallback when tested standalone\n}\n\nfor (const item of items) {\n  const r = item.json || {};\n  const qKey = String(r.query || '').trim().toLowerCase();\n  const reqMeta = metaByQuery.get(qKey) || defaultMeta;\n\n  const flags = Array.isArray(r.kybRiskFlags) ? r.kybRiskFlags : [];\n  const sanctions = r.sanctions || { status: 'UNAVAILABLE', totalMatches: 0, matches: [], sourcesChecked: [] };\n  const kybStatus = String(r.kybStatus || 'NOT_FOUND');\n  const annualSpendEur = Number(reqMeta.annualSpendEur || 0);\n\n  const reasons = [];\n  let riskScore = 0;\n\n  if (sanctions.status === 'EXACT_MATCH') {\n    riskScore += 100;\n    reasons.push(`Sanctions EXACT MATCH (${sanctions.totalMatches} hit(s) on ${(sanctions.matches || []).map(m => m.source).join(', ')})`);\n  } else if (sanctions.status === 'POTENTIAL_MATCH') {\n    riskScore += 80;\n    reasons.push(`Sanctions POTENTIAL MATCH (${sanctions.totalMatches} hit(s))`);\n  } else if (sanctions.status === 'UNAVAILABLE') {\n    riskScore += 40;\n    reasons.push('Sanctions lists unavailable — manual compliance check required');\n  }\n\n  if (flags.includes('COMPANY_INACTIVE') || r.status === 'INACTIVE') {\n    riskScore += 70;\n    reasons.push('Company status is INACTIVE / dissolved');\n  }\n  if (flags.includes('VAT_INVALID') || r.vatValid === false) {\n    riskScore += 60;\n    reasons.push('EU VAT number reported INVALID by VIES');\n  }\n  if (flags.includes('INSOLVENCY_HISTORY')) {\n    riskScore += 55;\n    reasons.push('Insolvency history reported by registry');\n  }\n  if (flags.includes('VAT_UNVERIFIED')) {\n    riskScore += 25;\n    reasons.push('EU VIES temporarily unavailable (vatValid=null) — retry later, do not auto-reject');\n  }\n  if (!r.found || kybStatus === 'NOT_FOUND' || kybStatus === 'ERROR' || kybStatus === 'PARTIAL') {\n    riskScore += 35;\n    reasons.push(`Registry lookup returned ${kybStatus}`);\n  }\n  if (annualSpendEur >= HIGH_VALUE_THRESHOLD_EUR) {\n    riskScore += 15;\n    reasons.push(`High-value vendor (€${annualSpendEur.toLocaleString('en-US')}) requires Finance sign-off`);\n  }\n\n  riskScore = Math.min(100, riskScore);\n\n  const isBlocked =\n    sanctions.status === 'EXACT_MATCH' ||\n    sanctions.status === 'POTENTIAL_MATCH' ||\n    flags.includes('COMPANY_INACTIVE') ||\n    flags.includes('VAT_INVALID') ||\n    flags.includes('INSOLVENCY_HISTORY');\n\n  const needsManualReview =\n    !isBlocked &&\n    (\n      kybStatus !== 'VERIFIED_ACTIVE' ||\n      sanctions.status !== 'CLEAR' ||\n      flags.includes('VAT_UNVERIFIED') ||\n      annualSpendEur >= HIGH_VALUE_THRESHOLD_EUR\n    );\n\n  const complianceDecision = isBlocked ? 'BLOCKED' : needsManualReview ? 'MANUAL_REVIEW' : 'APPROVED';\n  if (complianceDecision === 'APPROVED' && reasons.length === 0) {\n    reasons.push('Active entity verified via official registry, VAT valid or N/A, 0 OFAC/EU/UN sanctions hits');\n  }\n\n  const officersList = Array.isArray(r.officers)\n    ? r.officers.slice(0, 5).map(o => `${o.name}${o.role ? ` (${o.role})` : ''}`).join('; ')\n    : '';\n\n  const sanctionsDetails = Array.isArray(sanctions.matches) && sanctions.matches.length > 0\n    ? sanctions.matches.slice(0, 3).map(m => `[${m.source}] ${m.matchedName} (${m.matchType} ${m.score}, ${(m.programs || []).join('/')})`).join(' | ')\n    : 'CLEAR';\n\n  const vatStatusLabel = flags.includes('VAT_UNVERIFIED')\n    ? 'UNVERIFIED'\n    : (r.vatValid === null || r.vatValid === undefined ? 'N/A' : String(r.vatValid));\n\n  const vendorKey = `${r.country || 'XX'}:${r.registrationNumber || r.vatNumber || r.query || 'unknown'}`;\n\n  results.push({\n    json: {\n      vendorKey,\n      checkedAt: r.checkedAt || new Date().toISOString(),\n      query: r.query || reqMeta.query || '',\n      legalName: r.legalName || r.query || 'Unknown',\n      country: r.country || reqMeta.defaultCountry || '',\n      registrationNumber: r.registrationNumber || '',\n      vatNumber: r.vatNumber || '',\n      vatValid: vatStatusLabel,\n      leiCode: r.leiCode || '',\n      companyStatus: r.status || 'UNKNOWN',\n      address: r.address?.full || '',\n      latestRevenueEur: r.latestRevenueEur ?? '',\n      officersSummary: officersList,\n      sanctionsStatus: sanctions.status || 'UNKNOWN',\n      sanctionsDetails,\n      kybRiskFlags: flags.join(', '),\n      riskScore,\n      complianceDecision,\n      decisionReasons: reasons.join(' | '),\n      annualSpendEur,\n      requesterEmail: reqMeta.requesterEmail || 'unspecified',\n      registryUrl: Array.isArray(r.registryUrls) ? (r.registryUrls[0] || '') : '',\n    },\n  });\n}\n\nreturn results;"
+      },
+      "id": "code-compliance-decision",
+      "name": "Evaluate Compliance Decision & Risk Score",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1540,
+        60
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "rule-blocked",
+                    "leftValue": "={{ $json.complianceDecision }}",
+                    "rightValue": "BLOCKED",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "BLOCKED"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "rule-review",
+                    "leftValue": "={{ $json.complianceDecision }}",
+                    "rightValue": "MANUAL_REVIEW",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "MANUAL_REVIEW"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "rule-approved",
+                    "leftValue": "={{ $json.complianceDecision }}",
+                    "rightValue": "APPROVED",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "APPROVED"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "switch-compliance",
+      "name": "Route by Compliance Decision",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        1880,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Compliance_Audit_Log",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {}
+        },
+        "options": {}
+      },
+      "id": "sheets-log-blocked",
+      "name": "Log Blocked Vendor (Audit Sheet)",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        2140,
+        -60
+      ]
+    },
+    {
+      "parameters": {
+        "channel": "#compliance",
+        "text": "={{ ':octagonal_sign: *VENDOR BLOCKED — Compliance Hold* (Risk ' + $json.riskScore + '/100)\\n• *Entity:* ' + $json.legalName + ' (`' + $json.query + '`)\\n• *Flags:* ' + ($json.kybRiskFlags || 'NONE') + '\\n• *Sanctions:* ' + $json.sanctionsStatus + ' — ' + $json.sanctionsDetails + '\\n• *Reasons:* ' + $json.decisionReasons + '\\n• *Requester:* ' + $json.requesterEmail }}"
+      },
+      "id": "slack-blocked",
+      "name": "Send Critical Alert to #compliance",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.2,
+      "position": [
+        2360,
+        -60
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Compliance_Audit_Log",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {}
+        },
+        "options": {}
+      },
+      "id": "sheets-log-review",
+      "name": "Log Review Queue (Audit Sheet)",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        2140,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "channel": "#finance-ops",
+        "text": "={{ ':mag: *Vendor Manual Review Needed* (Risk ' + $json.riskScore + '/100)\\n• *Entity:* ' + $json.legalName + ' (`' + $json.query + '`)\\n• *VAT Valid:* ' + $json.vatValid + ' | *Sanctions:* ' + $json.sanctionsStatus + '\\n• *Reasons:* ' + $json.decisionReasons + '\\n• *Spend:* €' + $json.annualSpendEur + ' | *Requester:* ' + $json.requesterEmail }}"
+      },
+      "id": "slack-review",
+      "name": "Post Review Ticket to #finance-ops",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.2,
+      "position": [
+        2360,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Approved_Vendors",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "matchingColumns": [
+            "vendorKey"
+          ],
+          "value": {}
+        },
+        "options": {}
+      },
+      "id": "sheets-upsert-approved",
+      "name": "Upsert Approved Vendor Master Sheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        2140,
+        380
+      ]
+    },
+    {
+      "parameters": {
+        "channel": "#procurement",
+        "text": "={{ ':white_check_mark: *Vendor Approved*\\n• *Legal Name:* ' + $json.legalName + ' (' + $json.country + ')\\n• *Reg / VAT / LEI:* ' + ($json.registrationNumber || '-') + ' | ' + ($json.vatNumber || '-') + ' | ' + ($json.leiCode || '-') + '\\n• *Sanctions:* CLEAR (OFAC + EU FSF + UN SC)\\n• *Registry:* ' + ($json.registryUrl || 'N/A') }}"
+      },
+      "id": "slack-approved",
+      "name": "Notify Procurement: Vendor Approved",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.2,
+      "position": [
+        2360,
+        380
+      ]
+    }
+  ],
+  "connections": {
+    "Vendor Onboarding Form": {
+      "main": [
+        [
+          {
+            "node": "Normalize & Validate Vendor Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Weekdays at 08:30 (Batch Check)": {
+      "main": [
+        [
+          {
+            "node": "Read Pending Vendors from Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Pending Vendors from Sheet": {
+      "main": [
+        [
+          {
+            "node": "Normalize & Validate Vendor Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize & Validate Vendor Input": {
+      "main": [
+        [
+          {
+            "node": "Is Vendor Input Valid?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Vendor Input Valid?": {
+      "main": [
+        [
+          {
+            "node": "Screen Company (KYB + VIES + Sanctions)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Notify Ops: Invalid Vendor Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Screen Company (KYB + VIES + Sanctions)": {
+      "main": [
+        [
+          {
+            "node": "Evaluate Compliance Decision & Risk Score",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Alert Ops: KYB API Failure",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Evaluate Compliance Decision & Risk Score": {
+      "main": [
+        [
+          {
+            "node": "Route by Compliance Decision",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route by Compliance Decision": {
+      "main": [
+        [
+          {
+            "node": "Log Blocked Vendor (Audit Sheet)",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Send Critical Alert to #compliance",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log Review Queue (Audit Sheet)",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Post Review Ticket to #finance-ops",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Upsert Approved Vendor Master Sheet",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Notify Procurement: Vendor Approved",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
