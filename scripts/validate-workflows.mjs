@@ -193,6 +193,7 @@ for (const file of allWorkflowFiles) {
         assert.equal(overview.parameters.color, 1, `${file}: overview sticky note must be color 1 (yellow), not ${overview.parameters.color}`);
         assert.ok(/### Setup/.test(overview.parameters.content), `${file}: overview sticky note missing "### Setup"`);
         assert.ok(/### Customization/.test(overview.parameters.content), `${file}: overview sticky note missing "### Customization"`);
+        assert.ok(/### Limitations/.test(overview.parameters.content), `${file}: overview sticky note missing "### Limitations"`);
         const overviewWords = overview.parameters.content.trim().split(/\s+/).length;
         assert.ok(overviewWords >= 100 && overviewWords <= 300, `${file}: overview sticky note must be 100-300 words (got ${overviewWords})`);
 
